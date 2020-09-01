@@ -146,6 +146,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   integer :: stdoutunit,stdlogunit 
         PRINT *, "ocean_basal_tracer_init"
+        PRINT *, "hola"
 !  stdoutunit=stdout();stdlogunit=stdlog() 
 !
 !  if ( module_is_initialized ) then 
