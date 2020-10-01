@@ -248,7 +248,53 @@ end subroutine ocean_basal_tracer_init
 !
 subroutine basal_tracer_source(Time, Thickness, T_prog)
 
-!Pedro
+  type(ocean_time_type),        intent(in)    :: Time
+  type(ocean_thickness_type),   intent(in)    :: Thickness
+  type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
+  integer :: param_choice
+
+  param_choice = 1
+
+  IF ( param_choice == 1 ) THEN
+    CALL basal_tracer_source_par(Time, Thickness, T_prog)
+  ELSEIF ( param_choice == 1 ) THEN
+    CALL basal_tracer_source_paul(Time, Thickness, T_prog)
+  ENDIF
+
+end subroutine basal_tracer_source
+! </SUBROUTINE> NAME="basal_tracer_source"
+
+!#######################################################################
+! <SUBROUTINE NAME="basal_tracer_source_par">
+!
+! <DESCRIPTION>
+! This subroutine calculates thickness weighted and density weighted
+! time tendencies of tracers due to damping by basal.
+! </DESCRIPTION>
+!
+subroutine basal_tracer_source_par(Time, Thickness, T_prog)
+
+  type(ocean_time_type),        intent(in)    :: Time
+  type(ocean_thickness_type),   intent(in)    :: Thickness
+  type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
+
+
+PRINT *, "basal_tracer_source_par"
+
+end subroutine basal_tracer_source_par
+! </SUBROUTINE> NAME="basal_tracer_source_par"
+
+
+!#######################################################################
+! <SUBROUTINE NAME="basal_tracer_source_paul">
+!
+! <DESCRIPTION>
+! This subroutine calculates thickness weighted and density weighted
+! time tendencies of tracers due to damping by basal.
+! </DESCRIPTION>
+!
+subroutine basal_tracer_source_paul(Time, Thickness, T_prog)
+
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
@@ -261,142 +307,141 @@ subroutine basal_tracer_source(Time, Thickness, T_prog)
   logical :: do_adaptive_restore = .false.  ! Only restore in specified time period.
   logical :: do_normal_restore = .false.  ! Only restore in specified time period.
   logical, save :: first_pass = .true.
-PRINT *, "basal_tracer_source"
-!
-!  if(.not. use_this_module) return
-!
-!  taum1 = Time%taum1
-!  tau   = Time%tau
-!  wrk1  = 0.0
-!
-!  if (use_adaptive_restore) then
-!    secs_restore = days_to_restore * 86400 + secs_to_restore
-!    sdiff = 0.0
-!    call get_time(Time%model_time, secs, days)
-!    numsecs = (days - initial_day) * 86400 + secs - initial_secs
-!
-!    do_adaptive_restore = (numsecs < secs_restore)
-!    do_normal_restore = (.not. do_adaptive_restore) .and. use_basal_after_init
-!  else
-!    do_normal_restore = .true.
-!  endif
-!
-!  do n=1,size(T_prog(:))
-!
-!    ! Need to reinitialise wrk2 here due to limiting of temperature.
-!    wrk2  = 0.0
-!
-!    if (Basal(n)%id > 0) then
-!
-!        ! get basal value for current time
-!        call time_interp_external(Basal(n)%id, Time%model_time, wrk1)
-!        if (do_adaptive_restore) then
-!           if (first_pass) then
-!              if (use_hard_thump) then
-!                 do k = 1, nk
-!                    do j = jsd, jed
-!                       do i = isd, ied
-!                          T_prog(n)%field(i,j,k,taum1) = wrk1(i,j,k)
-!                          T_prog(n)%field(i,j,k,tau) = wrk1(i,j,k)
-!                       end do
-!                    end do
-!                 end do
-!              end if
-!              wrk2 = abs(T_prog(n)%field(:,:,:,taum1) - wrk1(:,:,:)) &
-!                     * Grd%tmask(:,:,:)
-!              sum_val = sum(wrk2(isc:iec,jsc:jec,:))
-!              call mpp_sum(sum_val)
-!              sdiffo(n) = sum_val / Grd%wet_t_points
-!              if (.not. use_normalising) then
-!                sdiffo(n) = 1.0
-!              else
-!                sdiffo(n) = maxval(wrk2)
-!                call mpp_max(sdiffo(n))
-!                sdiffo(n) = 1.01 * sdiffo(n)
-!              endif
-!           endif
-!
-!           do k = 1, nk
-!             do j = jsd, jed
-!               do i = isd, ied
-!                 sdiff = abs(T_prog(n)%field(i,j,k,taum1) - wrk1(i,j,k))
-!                 sdiff = max(sdiff, 1e-9) ! Minimum tolerance
-!                 adaptive_coeff = 1.0 / (taumin - &
-!                                         (lambda * real(secs_restore)) &
-!                                         / (((sdiff / sdiffo(n))**npower) & 
-!                                            * log(1 - athresh)))
-!                 wrk2(i,j,k) = Thickness%rho_dzt(i,j,k,tau) * adaptive_coeff &
-!                                  * (wrk1(i,j,k) - T_prog(n)%field(i,j,k,taum1))
-!               enddo
-!             enddo
-!           enddo
-!        else if (do_normal_restore) then
-!            do k = 1, nk
-!                do j = jsc, jec
-!                    do i = isc, iec
-!                        wrk2(i,j,k) = Thickness%rho_dzt(i,j,k,tau) &
-!                                     * Basal(n)%damp_coeff(i,j,k) &
-!                                     * (wrk1(i,j,k) - T_prog(n)%field(i,j,k,taum1))
-!                    end do
-!                end do
-!             end do
-!        end if
-!
-!    end if
-!
-!    ! These tracer relaxation schemes were in the original OFAM and AusCOM
-!    ! source code, and may be needed by other OFAM-based experiments.
-!    !
-!    ! For now, let's keep them in the same place, but they are now turned off
-!    ! by default.  They may need to be moved or deleted in the future.
-!
-!    ! Limit to -1.8 deg with 3hour restoring (got other limits here for initialising. Not sure if needed (namelist use?).
-!    if (limit_temp .and. trim(T_prog(n)%name) == 'temp') then
-!       do k=1,nk
-!          do j=jsc,jec
-!             do i=isc,iec
-!                wrk2(i,j,k) = wrk2(i,j,k) + Thickness%rho_dzt(i,j,k,tau) &
-!                    * max(limit_temp_min - T_prog(n)%field(i,j,k,taum1), 0.0) &
-!                    / limit_temp_restore
-!!                wrk2(i,j,k) = wrk2(i,j,k)+Thickness%rho_dzt(i,j,k,tau)*min(43.0-T_prog(n)%field(i,j,k,taum1),0.0)/3600.0
-!             enddo
-!          enddo
-!       enddo
-!    end if
-!
-!    if (limit_salt .and. trim(T_prog(n)%name) == 'salt') then
-!       do k=1,nk
-!          do j=jsc,jec
-!             do i=isc,iec
-!                wrk2(i,j,k) = wrk2(i,j,k) + Thickness%rho_dzt(i,j,k,tau) &
-!                    * max(limit_salt_min - T_prog(n)%field(i,j,k,taum1), 0.0) &
-!                    / limit_salt_restore
-!             enddo
-!          enddo
-!       enddo
-!    end if
-!
-!    ! Update tendency
-!    do k = 1, nk
-!        do j = jsc, jec
-!            do i = isc, iec
-!                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-!                                              + wrk2(i,j,k)
-!            end do
-!        end do
-!    end do
-!
-!    if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
-!         T_prog(n)%conversion*wrk2(:,:,:))
-!
-!  enddo
-!
-!  first_pass = .false.
-!
-!  return
+
+  if(.not. use_this_module) return
+
+  taum1 = Time%taum1
+  tau   = Time%tau
+  wrk1  = 0.0
+
+  if (use_adaptive_restore) then
+    secs_restore = days_to_restore * 86400 + secs_to_restore
+    sdiff = 0.0
+    call get_time(Time%model_time, secs, days)
+    numsecs = (days - initial_day) * 86400 + secs - initial_secs
+
+    do_adaptive_restore = (numsecs < secs_restore)
+    do_normal_restore = (.not. do_adaptive_restore) .and. use_basal_after_init
+  else
+    do_normal_restore = .true.
+  endif
+
+  do n=1,size(T_prog(:))
+
+    ! Need to reinitialise wrk2 here due to limiting of temperature.
+    wrk2  = 0.0
+
+    if (Basal(n)%id > 0) then
+
+        ! get basal value for current time
+        call time_interp_external(Basal(n)%id, Time%model_time, wrk1)
+        if (do_adaptive_restore) then
+           if (first_pass) then
+              if (use_hard_thump) then
+                 do k = 1, nk
+                    do j = jsd, jed
+                       do i = isd, ied
+                          T_prog(n)%field(i,j,k,taum1) = wrk1(i,j,k)
+                          T_prog(n)%field(i,j,k,tau) = wrk1(i,j,k)
+                       end do
+                    end do
+                 end do
+              end if
+              wrk2 = abs(T_prog(n)%field(:,:,:,taum1) - wrk1(:,:,:)) &
+                     * Grd%tmask(:,:,:)
+              sum_val = sum(wrk2(isc:iec,jsc:jec,:))
+              call mpp_sum(sum_val)
+              sdiffo(n) = sum_val / Grd%wet_t_points
+              if (.not. use_normalising) then
+                sdiffo(n) = 1.0
+              else
+                sdiffo(n) = maxval(wrk2)
+                call mpp_max(sdiffo(n))
+                sdiffo(n) = 1.01 * sdiffo(n)
+              endif
+           endif
+
+           do k = 1, nk
+             do j = jsd, jed
+               do i = isd, ied
+                 sdiff = abs(T_prog(n)%field(i,j,k,taum1) - wrk1(i,j,k))
+                 sdiff = max(sdiff, 1e-9) ! Minimum tolerance
+                 adaptive_coeff = 1.0 / (taumin - &
+                                         (lambda * real(secs_restore)) &
+                                         / (((sdiff / sdiffo(n))**npower) & 
+                                            * log(1 - athresh)))
+                 wrk2(i,j,k) = Thickness%rho_dzt(i,j,k,tau) * adaptive_coeff &
+                                  * (wrk1(i,j,k) - T_prog(n)%field(i,j,k,taum1))
+               enddo
+             enddo
+           enddo
+        else if (do_normal_restore) then
+            do k = 1, nk
+                do j = jsc, jec
+                    do i = isc, iec
+                        wrk2(i,j,k) = Thickness%rho_dzt(i,j,k,tau) &
+                                     * Basal(n)%damp_coeff(i,j,k) &
+                                     * (wrk1(i,j,k) - T_prog(n)%field(i,j,k,taum1))
+                    end do
+                end do
+             end do
+        end if
+
+    end if
+
+    ! These tracer relaxation schemes were in the original OFAM and AusCOM
+    ! source code, and may be needed by other OFAM-based experiments.
+    !
+    ! For now, let's keep them in the same place, but they are now turned off
+    ! by default.  They may need to be moved or deleted in the future.
+
+    ! Limit to -1.8 deg with 3hour restoring (got other limits here for initialising. Not sure if needed (namelist use?).
+    if (limit_temp .and. trim(T_prog(n)%name) == 'temp') then
+       do k=1,nk
+          do j=jsc,jec
+             do i=isc,iec
+                wrk2(i,j,k) = wrk2(i,j,k) + Thickness%rho_dzt(i,j,k,tau) &
+                    * max(limit_temp_min - T_prog(n)%field(i,j,k,taum1), 0.0) &
+                    / limit_temp_restore
+!                wrk2(i,j,k) = wrk2(i,j,k)+Thickness%rho_dzt(i,j,k,tau)*min(43.0-T_prog(n)%field(i,j,k,taum1),0.0)/3600.0
+             enddo
+          enddo
+       enddo
+    end if
+
+    if (limit_salt .and. trim(T_prog(n)%name) == 'salt') then
+       do k=1,nk
+          do j=jsc,jec
+             do i=isc,iec
+                wrk2(i,j,k) = wrk2(i,j,k) + Thickness%rho_dzt(i,j,k,tau) &
+                    * max(limit_salt_min - T_prog(n)%field(i,j,k,taum1), 0.0) &
+                    / limit_salt_restore
+             enddo
+          enddo
+       enddo
+    end if
+
+    ! Update tendency
+    do k = 1, nk
+        do j = jsc, jec
+            do i = isc, iec
+                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
+                                              + wrk2(i,j,k)
+            end do
+        end do
+    end do
+
+    if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
+         T_prog(n)%conversion*wrk2(:,:,:))
+
+  enddo
+
+  first_pass = .false.
+
+  return
 
 
-end subroutine basal_tracer_source
-! </SUBROUTINE> NAME="basal_tracer_source"
+end subroutine basal_tracer_source_paul
+! </SUBROUTINE> NAME="basal_tracer_source_paul"
 
 end module ocean_basal_tracer_mod
