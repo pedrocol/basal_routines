@@ -66,9 +66,6 @@ end type ocean_basal_type
 
 
 type(ocean_basal_type), allocatable, dimension(:) :: Basal
-!Pedro
-type(ocean_basal_type), allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
-!Pedro
 type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
@@ -103,7 +100,7 @@ real    :: deflate_fraction      = 0.6
 integer :: secs_to_restore       = 0
 integer :: days_to_restore       = 1
 
-logical :: limit_temp            = .false.
+logical :: limit_temp            = .true.
 real    :: limit_temp_min        = -1.8
 real    :: limit_temp_restore    = 10800.
 
@@ -256,7 +253,7 @@ subroutine basal_tracer_source(Time, Thickness, T_prog)
   param_choice = 1
 
   IF ( param_choice == 1 ) THEN
-    CALL basal_tracer_source_par(Time, Thickness, T_prog)
+    CALL basal_tracer_source_0(Time, Thickness, T_prog)
   ELSEIF ( param_choice == 1 ) THEN
     CALL basal_tracer_source_paul(Time, Thickness, T_prog)
   ENDIF
@@ -265,24 +262,204 @@ end subroutine basal_tracer_source
 ! </SUBROUTINE> NAME="basal_tracer_source"
 
 !#######################################################################
-! <SUBROUTINE NAME="basal_tracer_source_par">
+! <SUBROUTINE NAME="basal_tracer_source_0">
 !
 ! <DESCRIPTION>
 ! This subroutine calculates thickness weighted and density weighted
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source_par(Time, Thickness, T_prog)
+subroutine basal_tracer_source_0(Time, Thickness, T_prog)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
+  real, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
+  real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting)
+  real, allocatable, dimension(:,:) :: qisf          ! heat flux
+  real                              :: rau0          ! volumic mass of reference     [kg/m3]
+  real                              :: rcp           ! heat capacity     [J/K]
+  real                              :: rau0_rcp, r1_rau0_rcp, r1_rau0, soce
+  real, allocatable, dimension(:,:) :: stbl          ! Salinity top boundary layer
+  real, allocatable, dimension(:,:) :: zt_frz        ! Freezing point temperature
+  real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
+  real, allocatable, dimension(:,:) :: rhisf_tbl, rhisf_tbl_0   !: thickness of tbl  [m]
+!#######################################################################
 
 
-PRINT *, "basal_tracer_source_par"
+PRINT *, "basal_tracer_source_0"
 
-end subroutine basal_tracer_source_par
-! </SUBROUTINE> NAME="basal_tracer_source_par"
+  allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
+  allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
+  allocate (   stbl(isd:ied,jsd:jed), zt_frz(isd:ied,jsd:jed) )
+  allocate ( rhisf_tbl(isd:ied,jsd:jed) )
+  allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc_(isd:ied,jsd:jed,2) )
+
+  taum1 = Time%taum1
+  tau   = Time%tau
+  wrk1  = 0.0 !Asumes T=0 and S=0 (also standard in NEMO)
+
+  do n=1,size(T_prog(:))
+
+    ! Need to reinitialise wrk2 here due to limiting of temperature.
+    !wrk2  = 0.0
+
+    fwfisf(:,:) = 1e-6 ! fresh water flux from the isf (fwfisf <0 mean melting)
+
+    rLfusisf    = 0.334e6    !: latent heat of fusion of ice shelf     [J/kg]
+    qisf(:,:)   = fwfisf(:,:) * rLfusisf               ! heat flux
+
+    rau0        = 1026                 !: volumic mass of reference     [kg/m3]
+    rcp         = 3991.86795711963      !: heat capacity     [J/K]
+    rau0_rcp    = rau0 * rcp
+    r1_rau0_rcp = 1. / rau0_rcp
+    r1_rau0     = 1. / rau0
+
+    soce        =   34.7        ! Sea salinity, approximation Pedro
+    stbl(:,:)   = soce          ! Salinity top boundary layer
+
+    !Freezing point temp
+    !DO jj = 1,jpj
+    !   DO ji = 1,jpi
+    !      zdep(ji,jj)=gdepw_n(ji,jj,misfkt(ji,jj))
+    !   END DO
+    !END DO
+
+    !CALL eos_fzp( stbl(:,:), zt_frz(:,:), zdep(:,:) ) ! freezing point temperature at depth z
+    zt_frz(:,:) = -1
+
+    ! Before and now values
+    !risf_tsc_b(:,:,:)= risf_tsc(:,:,:)
+    risf_tsc(:,:,1) = qisf(:,:) * r1_rau0_rcp - fwfisf(:,:) * zt_frz(:,:) * r1_rau0 !:before and now T & S isf contents [K.m/s & PSU.m/s]
+    risf_tsc(:,:,2) = 0.0
+    risf_tsc_b(:,:,:)= risf_tsc(:,:,:) !Equal for the moment, constant source
+
+    !Some dummy values for ice shelfs geometry
+    misfkt(:,:) = 4
+    misfkb(:,:) = 6
+    rhisf_tbl(:,:) = SUM(e3t_n(:,:,misfkt:misfkb))
+
+
+!    ! compute bottom level of isf tbl and thickness of tbl below the ice shelf
+!    DO jj = 1,jpj
+!        DO ji = 1,jpi
+!           ikt = misfkt(ji,jj)
+!           ikb = misfkt(ji,jj)
+!           ! thickness of boundary layer at least the top level thickness
+!           rhisf_tbl(ji,jj) = MAX(rhisf_tbl_0(ji,jj), e3t_n(ji,jj,ikt))
+!            ! determine the deepest level influenced by the boundary layer
+!           DO jk = ikt+1, mbkt(ji,jj)
+!              IF( (SUM(e3t_n(ji,jj,ikt:jk-1)) < rhisf_tbl(ji,jj)) .AND. (tmask(ji,jj,jk) == 1) )   ikb = jk
+!           END DO
+!           rhisf_tbl(ji,jj) = MIN(rhisf_tbl(ji,jj), SUM(e3t_n(ji,jj,ikt:ikb))) ! limit the tbl to water thickness.
+!           misfkb(ji,jj) = ikb                                                   ! last wet level of the tbl
+!           r1_hisf_tbl(ji,jj) = 1._wp / rhisf_tbl(ji,jj)
+!
+!           zhk           = SUM( e3t_n(ji, jj, ikt:ikb - 1)) * r1_hisf_tbl(ji,jj) ! proportion of tbl cover by cell from ikt to ikb - 1
+!           ralpha(ji,jj) = rhisf_tbl(ji,jj) * (1._wp - zhk ) / e3t_n(ji,jj,ikb)  ! proportion of bottom cell influenced by boundary layer
+!        END DO
+!     END DO
+
+    if (trim(T_prog(n)%name) == 'temp' ) then
+       do j=jsc,jec
+          do i=isc,iec
+             ikt = misfkt(ji,jj)
+             ikb = misfkb(ji,jj)
+             ! level fully include in the ice shelf boundary layer
+             ! sign - because fwf sign of evapo (rnf sign of precip)
+             do jk = ikt, ikb - 1
+                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
+                     &   + 0.5 * ( risf_tsc_b(ji,jj,jp_tem) + risf_tsc(ji,jj,jp_tem) ) * r1_hisf_tbl(ji,jj)
+             enddo
+          enddo
+       enddo
+    end if
+
+    if ( trim(T_prog(n)%name) == 'salt' ) then
+       do j=jsc,jec
+          do i=isc,iec
+             ikt = misfkt(ji,jj)
+             ikb = misfkb(ji,jj)
+             ! level fully include in the ice shelf boundary layer
+             ! sign - because fwf sign of evapo (rnf sign of precip)
+             do jk = ikt, ikb - 1
+                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) & 
+                     &   + 0.5 * ( risf_tsc_b(ji,jj,jp_sal) + risf_tsc(ji,jj,jp_sal) ) * r1_hisf_tbl(ji,jj)
+             enddo
+          enddo
+       enddo   
+    end if
+
+    ! Update tendency
+    do k = 1, nk
+        do j = jsc, jec
+            do i = isc, iec
+                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
+                                              + wrk2(i,j,k)
+            end do
+        end do
+    end do
+
+    if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
+         T_prog(n)%conversion*wrk2(:,:,:))
+
+  enddo !n
+
+
+
+end subroutine basal_tracer_source_0
+! </SUBROUTINE> NAME="basal_tracer_source_0"
+
+
+
+!! </SUBROUTINE> NAME="eos_fzp"
+!   SUBROUTINE  eos_fzp( psal, ptf, pdep )
+!      !!----------------------------------------------------------------------
+!      !!                 ***  ROUTINE eos_fzp  ***
+!      !!
+!      !! ** Purpose :   Compute the freezing point temperature [Celsius]
+!      !!
+!      !! ** Method  :   UNESCO freezing point (ptf) in Celsius is given by
+!      !!       ptf(t,z) = (-.0575+1.710523e-3*sqrt(abs(s))-2.154996e-4*s)*s - 7.53e-4*z
+!      !!       checkvalue: tf=-2.588567 Celsius for s=40psu, z=500m
+!      !!
+!      !! Reference  :   UNESCO tech. papers in the marine science no. 28. 1978
+!      !!----------------------------------------------------------------------
+!      REAL(wp), DIMENSION(jpi,jpj), INTENT(in   )           ::   psal   ! salinity   [psu]
+!      REAL(wp), DIMENSION(jpi,jpj), INTENT(in   ), OPTIONAL ::   pdep   ! depth      [m]
+!      REAL(wp), DIMENSION(jpi,jpj), INTENT(out  )           ::   ptf    ! freezing temperature [Celsius]
+!      !
+!      INTEGER  ::   ji, jj, jformulation          ! dummy loop indices
+!      REAL(wp) ::   zt, zs, z1_S0   ! local scalars
+!      !!----------------------------------------------------------------------
+!      !
+!      jformulation = 1
+!      !
+!      IF ( jformulation == 1 ) THEN      !==  CT,SA (TEOS-10 and S-EOS formulations) ==!
+!         !
+!         z1_S0 = 1._wp / 35.16504_wp
+!         DO jj = 1, jpj
+!            DO ji = 1, jpi
+!               zs= SQRT( ABS( psal(ji,jj) ) * z1_S0 )           ! square root salinity
+!               ptf(ji,jj) = ((((1.46873e-03_wp*zs-9.64972e-03_wp)*zs+2.28348e-02_wp)*zs &
+!                  &          - 3.12775e-02_wp)*zs+2.07679e-02_wp)*zs-5.87701e-02_wp
+!            END DO
+!         END DO
+!         ptf(:,:) = ptf(:,:) * psal(:,:)
+!         !
+!         IF( PRESENT( pdep ) )   ptf(:,:) = ptf(:,:) - 7.53e-4 * pdep(:,:)
+!         !
+!      ELSEIF ( jformulation == 2) THEN                !==  PT,SP (UNESCO formulation)  ==!
+!         !
+!         ptf(:,:) = ( - 0.0575_wp + 1.710523e-3_wp * SQRT( psal(:,:) )   &
+!            &                     - 2.154996e-4_wp *       psal(:,:)   ) * psal(:,:)
+!            !
+!         IF( PRESENT( pdep ) )   ptf(:,:) = ptf(:,:) - 7.53e-4 * pdep(:,:)
+!         !
+!      ENDIF
+!      !
+!  END SUBROUTINE eos_fzp
+!! </SUBROUTINE> NAME="eos_fzp"
 
 
 !#######################################################################
