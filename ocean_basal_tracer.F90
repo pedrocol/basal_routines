@@ -274,16 +274,19 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
-  real, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
-  real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting)
+  integer :: taum1, tau
+  integer :: i, j, k, n
+  integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
+  integer, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting)
   real, allocatable, dimension(:,:) :: qisf          ! heat flux
   real                              :: rau0          ! volumic mass of reference     [kg/m3]
   real                              :: rcp           ! heat capacity     [J/K]
-  real                              :: rau0_rcp, r1_rau0_rcp, r1_rau0, soce
+  real                              :: rau0_rcp, r1_rau0_rcp, r1_rau0, soce, rLfusisf
   real, allocatable, dimension(:,:) :: stbl          ! Salinity top boundary layer
   real, allocatable, dimension(:,:) :: zt_frz        ! Freezing point temperature
+  real, allocatable, dimension(:,:) :: rhisf_tbl, r1_hisf_tbl   !: thickness of tbl  [m]
   real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
-  real, allocatable, dimension(:,:) :: rhisf_tbl, rhisf_tbl_0   !: thickness of tbl  [m]
+  integer ::   ikt, ikb     ! local integers
 !#######################################################################
 
 
@@ -292,8 +295,8 @@ PRINT *, "basal_tracer_source_0"
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
   allocate (   stbl(isd:ied,jsd:jed), zt_frz(isd:ied,jsd:jed) )
-  allocate ( rhisf_tbl(isd:ied,jsd:jed) )
-  allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc_(isd:ied,jsd:jed,2) )
+  allocate ( rhisf_tbl(isd:ied,jsd:jed), r1_hisf_tbl(isd:ied,jsd:jed) )
+  allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc(isd:ied,jsd:jed,2) ) !1=temp 2=sal
 
   taum1 = Time%taum1
   tau   = Time%tau
@@ -337,7 +340,9 @@ PRINT *, "basal_tracer_source_0"
     !Some dummy values for ice shelfs geometry
     misfkt(:,:) = 4
     misfkb(:,:) = 6
-    rhisf_tbl(:,:) = SUM(e3t_n(:,:,misfkt:misfkb))
+    !rhisf_tbl(:,:) = SUM(Thickness%dzt(:,:,misfkt:misfkb))
+    rhisf_tbl(:,:) = Thickness%dzt(:,:,4)
+    r1_hisf_tbl(:,:) = 1. / rhisf_tbl(:,:)
 
 
 !    ! compute bottom level of isf tbl and thickness of tbl below the ice shelf
@@ -363,13 +368,13 @@ PRINT *, "basal_tracer_source_0"
     if (trim(T_prog(n)%name) == 'temp' ) then
        do j=jsc,jec
           do i=isc,iec
-             ikt = misfkt(ji,jj)
-             ikb = misfkb(ji,jj)
+             ikt = misfkt(i,j)
+             ikb = misfkb(i,j)
              ! level fully include in the ice shelf boundary layer
              ! sign - because fwf sign of evapo (rnf sign of precip)
-             do jk = ikt, ikb - 1
+             do k = ikt, ikb - 1
                 T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-                     &   + 0.5 * ( risf_tsc_b(ji,jj,jp_tem) + risf_tsc(ji,jj,jp_tem) ) * r1_hisf_tbl(ji,jj)
+                     &   + 0.5 * ( risf_tsc_b(i,j,1) + risf_tsc(i,j,1) ) * r1_hisf_tbl(i,j)
              enddo
           enddo
        enddo
@@ -378,34 +383,32 @@ PRINT *, "basal_tracer_source_0"
     if ( trim(T_prog(n)%name) == 'salt' ) then
        do j=jsc,jec
           do i=isc,iec
-             ikt = misfkt(ji,jj)
-             ikb = misfkb(ji,jj)
+             ikt = misfkt(i,j)
+             ikb = misfkb(i,j)
              ! level fully include in the ice shelf boundary layer
              ! sign - because fwf sign of evapo (rnf sign of precip)
-             do jk = ikt, ikb - 1
+             do k = ikt, ikb - 1
                 T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) & 
-                     &   + 0.5 * ( risf_tsc_b(ji,jj,jp_sal) + risf_tsc(ji,jj,jp_sal) ) * r1_hisf_tbl(ji,jj)
+                     &   + 0.5 * ( risf_tsc_b(i,j,2) + risf_tsc(i,j,2) ) * r1_hisf_tbl(i,j)
              enddo
           enddo
        enddo   
     end if
 
     ! Update tendency
-    do k = 1, nk
-        do j = jsc, jec
-            do i = isc, iec
-                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-                                              + wrk2(i,j,k)
-            end do
-        end do
-    end do
+    !do k = 1, nk
+    !    do j = jsc, jec
+    !        do i = isc, iec
+    !            T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
+    !                                          + wrk2(i,j,k)
+    !        end do
+    !    end do
+    !end do
 
-    if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
-         T_prog(n)%conversion*wrk2(:,:,:))
+    !if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
+    !     T_prog(n)%conversion*wrk2(:,:,:))
 
   enddo !n
-
-
 
 end subroutine basal_tracer_source_0
 ! </SUBROUTINE> NAME="basal_tracer_source_0"
