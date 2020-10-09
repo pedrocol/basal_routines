@@ -145,7 +145,6 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   character(len=128) :: name
 
   integer :: stdoutunit,stdlogunit 
-        PRINT *, "ocean_basal_tracer_init"
   stdoutunit=stdout();stdlogunit=stdlog() 
 
   if ( module_is_initialized ) then 
@@ -277,7 +276,7 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   integer :: taum1, tau
   integer :: i, j, k, n
   integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
-  integer, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting)
+  integer, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
   real, allocatable, dimension(:,:) :: qisf          ! heat flux
   real                              :: rau0          ! volumic mass of reference     [kg/m3]
   real                              :: rcp           ! heat capacity     [J/K]
@@ -289,8 +288,6 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   integer ::   ikt, ikb     ! local integers
 !#######################################################################
 
-
-PRINT *, "basal_tracer_source_0"
 
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
@@ -307,7 +304,7 @@ PRINT *, "basal_tracer_source_0"
     ! Need to reinitialise wrk2 here due to limiting of temperature.
     !wrk2  = 0.0
 
-    fwfisf(:,:) = 1e-6 ! fresh water flux from the isf (fwfisf <0 mean melting)
+    fwfisf(:,:) = 1 ! fresh water flux from the isf (fwfisf <0 mean melting)
 
     rLfusisf    = 0.334e6    !: latent heat of fusion of ice shelf     [J/kg]
     qisf(:,:)   = fwfisf(:,:) * rLfusisf               ! heat flux
@@ -329,19 +326,20 @@ PRINT *, "basal_tracer_source_0"
     !END DO
 
     !CALL eos_fzp( stbl(:,:), zt_frz(:,:), zdep(:,:) ) ! freezing point temperature at depth z
-    zt_frz(:,:) = -1
+    zt_frz(:,:) = 272 !-1°C
 
     ! Before and now values
     !risf_tsc_b(:,:,:)= risf_tsc(:,:,:)
     risf_tsc(:,:,1) = qisf(:,:) * r1_rau0_rcp - fwfisf(:,:) * zt_frz(:,:) * r1_rau0 !:before and now T & S isf contents [K.m/s & PSU.m/s]
     risf_tsc(:,:,2) = 0.0
     risf_tsc_b(:,:,:)= risf_tsc(:,:,:) !Equal for the moment, constant source
+    ! 10 *  ((0.334e6 * (1/(1026*3991.86795711963)) ) - ( 272 * (1/1026)))
 
     !Some dummy values for ice shelfs geometry
     misfkt(:,:) = 4
     misfkb(:,:) = 6
     !rhisf_tbl(:,:) = SUM(Thickness%dzt(:,:,misfkt:misfkb))
-    rhisf_tbl(:,:) = Thickness%dzt(:,:,4)
+    rhisf_tbl(:,:) = 50 !Thickness%dzt(:,:,4)
     r1_hisf_tbl(:,:) = 1. / rhisf_tbl(:,:)
 
 
@@ -410,6 +408,11 @@ PRINT *, "basal_tracer_source_0"
 
   enddo !n
 
+  deallocate ( misfkt, misfkb )
+  deallocate ( fwfisf,   qisf )
+  deallocate (   stbl, zt_frz )
+  deallocate ( rhisf_tbl, r1_hisf_tbl )
+  deallocate ( risf_tsc_b, risf_tsc ) !1=temp 2=sal
 end subroutine basal_tracer_source_0
 ! </SUBROUTINE> NAME="basal_tracer_source_0"
 
