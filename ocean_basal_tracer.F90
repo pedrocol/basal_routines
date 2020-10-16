@@ -181,6 +181,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 #ifndef MOM_STATIC_ARRAYS    
   call get_local_indices(Domain, isd, ied, jsd, jed, isc, iec, jsc, jec)
   nk = Grid%nk
+  !bottom level Grid%kmt(i,j)
 #endif
 
   do n=1,num_prog_tracers
@@ -269,7 +270,7 @@ end subroutine basal_tracer_source
 ! </DESCRIPTION>
 !
 subroutine basal_tracer_source_0(Time, Thickness, T_prog)
-
+  ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
@@ -285,6 +286,8 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   real, allocatable, dimension(:,:) :: zt_frz        ! Freezing point temperature
   real, allocatable, dimension(:,:) :: rhisf_tbl, r1_hisf_tbl   !: thickness of tbl  [m]
   real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
+  real, allocatable, dimension(:,:,:) :: zt_frz3d        ! Freezing point temperature
+  real, allocatable, dimension(:,:,:,:) :: risf_tsc_3d_b , risf_tsc_3d ! before and now T & S isf contents [K.m/s & PSU.m/s]
   integer ::   ikt, ikb     ! local integers
 !#######################################################################
 
@@ -292,17 +295,20 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
   allocate (   stbl(isd:ied,jsd:jed), zt_frz(isd:ied,jsd:jed) )
+  allocate (   zt_frz3d(isd:ied,jsd:jed,nk) )
   allocate ( rhisf_tbl(isd:ied,jsd:jed), r1_hisf_tbl(isd:ied,jsd:jed) )
   allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc(isd:ied,jsd:jed,2) ) !1=temp 2=sal
+  allocate ( risf_tsc_3d_b(isd:ied,jsd:jed,nk,2), risf_tsc_3d(isd:ied,jsd:jed,nk,2) ) !1=temp 2=sal
 
   taum1 = Time%taum1
   tau   = Time%tau
-  wrk1  = 0.0 !Asumes T=0 and S=0 (also standard in NEMO)
+  wrk1  = 0.0 !Asumes T=0 and S=0
 
-  do n=1,size(T_prog(:))
+  !do n=1,size(T_prog(:))
+  do n=1,num_prog_tracers
 
     ! Need to reinitialise wrk2 here due to limiting of temperature.
-    !wrk2  = 0.0
+    wrk2  = 0.0
 
     fwfisf(:,:) = 1 ! fresh water flux from the isf (fwfisf <0 mean melting)
 
@@ -326,10 +332,10 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
     !END DO
 
     !CALL eos_fzp( stbl(:,:), zt_frz(:,:), zdep(:,:) ) ! freezing point temperature at depth z
-    zt_frz(:,:) = 272 !-1°C
+    zt_frz(:,:) = 273.15 
+    zt_frz3d(:,:,:) = 273.15 
 
     ! Before and now values
-    !risf_tsc_b(:,:,:)= risf_tsc(:,:,:)
     risf_tsc(:,:,1) = qisf(:,:) * r1_rau0_rcp - fwfisf(:,:) * zt_frz(:,:) * r1_rau0 !:before and now T & S isf contents [K.m/s & PSU.m/s]
     risf_tsc(:,:,2) = 0.0
     risf_tsc_b(:,:,:)= risf_tsc(:,:,:) !Equal for the moment, constant source
@@ -342,6 +348,20 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
     rhisf_tbl(:,:) = 50 !Thickness%dzt(:,:,4)
     r1_hisf_tbl(:,:) = 1. / rhisf_tbl(:,:)
 
+
+    do j=jsc,jec
+       do i=isc,iec
+          ikt = misfkt(i,j)
+          ikb = misfkb(i,j)
+          ! level fully include in the ice shelf boundary layer
+          ! sign - because fwf sign of evapo (rnf sign of precip)
+          do k = ikt, ikb - 1
+            risf_tsc_3d(i,j,k,1) = (qisf(i,j) * r1_rau0_rcp - fwfisf(i,j) * zt_frz3d(i,j,k) * r1_rau0) * r1_hisf_tbl(i,j) ! K/s
+            risf_tsc_3d(i,j,k,2) = 0.0
+          enddo
+       enddo
+    enddo
+    risf_tsc_3d_b(:,:,:,:)= risf_tsc_3d(:,:,:,:) !Equal for the moment, constant source
 
 !    ! compute bottom level of isf tbl and thickness of tbl below the ice shelf
 !    DO jj = 1,jpj
@@ -371,8 +391,7 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
              ! level fully include in the ice shelf boundary layer
              ! sign - because fwf sign of evapo (rnf sign of precip)
              do k = ikt, ikb - 1
-                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-                     &   + 0.5 * ( risf_tsc_b(i,j,1) + risf_tsc(i,j,1) ) * r1_hisf_tbl(i,j)
+                wrk2(i,j,k) = wrk2(i,j,k) + 0.5 * ( risf_tsc_3d_b(i,j,k,1) + risf_tsc_3d(i,j,k,1) )
              enddo
           enddo
        enddo
@@ -386,22 +405,22 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
              ! level fully include in the ice shelf boundary layer
              ! sign - because fwf sign of evapo (rnf sign of precip)
              do k = ikt, ikb - 1
-                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) & 
-                     &   + 0.5 * ( risf_tsc_b(i,j,2) + risf_tsc(i,j,2) ) * r1_hisf_tbl(i,j)
+                wrk2(i,j,k) = wrk2(i,j,k) + 0.5 * ( risf_tsc_3d_b(i,j,k,2) + risf_tsc_3d(i,j,k,2) )
              enddo
           enddo
        enddo   
     end if
 
     ! Update tendency
-    !do k = 1, nk
-    !    do j = jsc, jec
-    !        do i = isc, iec
-    !            T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-    !                                          + wrk2(i,j,k)
-    !        end do
-    !    end do
-    !end do
+    do k = 1, nk
+        do j = jsc, jec
+            do i = isc, iec
+                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
+                                              + wrk2(i,j,k)
+            end do
+        end do
+    end do
+
 
     !if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
     !     T_prog(n)%conversion*wrk2(:,:,:))
@@ -411,8 +430,10 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   deallocate ( misfkt, misfkb )
   deallocate ( fwfisf,   qisf )
   deallocate (   stbl, zt_frz )
+  deallocate ( zt_frz3d )
   deallocate ( rhisf_tbl, r1_hisf_tbl )
   deallocate ( risf_tsc_b, risf_tsc ) !1=temp 2=sal
+  deallocate ( risf_tsc_3d_b, risf_tsc_3d )
 end subroutine basal_tracer_source_0
 ! </SUBROUTINE> NAME="basal_tracer_source_0"
 
