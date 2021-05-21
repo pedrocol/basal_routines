@@ -380,6 +380,9 @@ private
   real, dimension(isd:ied,jsd:jed,2)    :: upme          ! horizontal velocity of precip minus evap (m/s)
   real, dimension(isd:ied,jsd:jed)      :: river         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: runoff        ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2))
+!Pedro
+  real, dimension(isd:ied,jsd:jed)      :: basal         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
+!Pedro
   real, dimension(isd:ied,jsd:jed)      :: calving       ! mass flux of calving land ice per horz area from (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,2)    :: uriver        ! horizontal velocity from river runoff+calving
   real, dimension(isd:ied,jsd:jed)      :: patm          ! pressure at ocean top from atmosphere and/or ice (Pa) 
@@ -406,6 +409,9 @@ private
   real, pointer, dimension(:,:,:)   :: upme                =>NULL() ! horizontal velocity of precip minus evap (m/s)
   real, pointer, dimension(:,:)     :: river               =>NULL() ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: runoff              =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
+!Pedro
+  real, pointer, dimension(:,:)     :: basal               =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
+!Pedro
   real, pointer, dimension(:,:)     :: calving             =>NULL() ! mass flux of calving land ice per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: uriver              =>NULL() ! horizontal velocity from river (m/s)
   real, pointer, dimension(:,:)     :: patm                =>NULL() ! pressure at ocean top from sea ice and/or atmosphere (Pa) 
@@ -1210,6 +1216,9 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     allocate(upme(isd:ied,jsd:jed,2))
     allocate(river(isd:ied,jsd:jed))
     allocate(runoff(isd:ied,jsd:jed))
+!Pedro
+    allocate(basal(isd:ied,jsd:jed))
+!Pedro
     allocate(calving(isd:ied,jsd:jed))
     allocate(uriver(isd:ied,jsd:jed,2))
     allocate(patm(isd:ied,jsd:jed))
@@ -1249,6 +1258,9 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     upme                        = 0.0
     river                       = 0.0
     runoff                      = 0.0
+!Pedro
+    basal                       = 0.0
+!Pedro
     calving                     = 0.0
     uriver                      = 0.0
     patm                        = 0.0
@@ -1607,6 +1619,18 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, calving, &
             upme, uriver, swflx, swflx_vis, patm)
+!Pedro Put antarctic runoff in basal and zero-out in it
+      basal(:,:) = 0
+      do j=jsc,jec
+        do i=isc,iec
+           if ( j < 120 ) then
+              basal(i,j) = runoff(i,j)
+              runoff(i,j) = 0
+           endif
+        enddo
+      enddo
+
+!Pedro
        call mpp_clock_end(id_sbc)
 
        ! compute "flux adjustments" (e.g., surface tracer restoring, flux correction)
@@ -1675,7 +1699,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 !Pedro       
        ! add basal to T_prog%th_tendency 
        call mpp_clock_begin(id_basal_tracer)
-       !call basal_tracer_source(Time, Thickness, T_prog(1:num_prog_tracers)) 
+       call basal_tracer_source(Time, Thickness, T_prog(1:num_prog_tracers), dtime_t, basal) 
        call mpp_clock_end(id_basal_tracer)
 !Pedro
 

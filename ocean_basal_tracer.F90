@@ -50,6 +50,8 @@ use ocean_types_mod,          only: ocean_domain_type, ocean_grid_type, ocean_th
 use ocean_types_mod,          only: ocean_prog_tracer_type, ocean_options_type, ocean_time_type 
 use ocean_workspace_mod,      only: wrk1, wrk2
 use ocean_util_mod,           only: diagnose_3d
+use constants_mod,            only: epsln
+use axis_utils_mod,           only: frac_index, nearest_index
 
 implicit none
 
@@ -62,6 +64,7 @@ type ocean_basal_type
    character(len=32) :: name                                 ! tracer name corresponding to basal
    real, dimension(:,:,:), pointer :: damp_coeff   => NULL() ! 3d inverse damping rate (tracer units/ sec)
    real, dimension(:,:)  , pointer :: damp_coeff2d => NULL() ! 2d inverse damping rate (tracer units/ sec)
+   real, dimension(:,:)  , pointer :: basal_fw     => NULL() ! runoff
 end type ocean_basal_type
 
 
@@ -112,6 +115,8 @@ integer :: secs_restore
 integer :: initial_day
 integer :: initial_secs
 real, allocatable :: sdiffo(:)
+logical :: debug_all_in_top_cell = .false.
+
 
 namelist /ocean_basal_tracer_nml/ use_this_module, test_nml, damp_coeff_3d
 
@@ -157,7 +162,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   !num_prog_tracers = size(T_prog(:))
   num_prog_tracers = 1
 
-  allocate( Basal(num_prog_tracers) )
+  allocate( Basal(1) )
 
   call write_version_number(version, tagname)
 
@@ -243,18 +248,21 @@ end subroutine ocean_basal_tracer_init
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source(Time, Thickness, T_prog)
+subroutine basal_tracer_source(Time, Thickness, T_prog, dtime, basal)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
+  real,                         intent(in)    :: dtime
+  real, dimension(isd:,jsd:),   intent(in) :: basal
+
   integer :: param_choice
 
-  param_choice = 1
+  param_choice = 0
 
   IF ( param_choice == 1 ) THEN
-    CALL basal_tracer_source_0(Time, Thickness, T_prog)
-  ELSEIF ( param_choice == 1 ) THEN
+    CALL basal_tracer_source_1(Time, Thickness, T_prog, dtime, basal)
+  ELSEIF ( param_choice == 3 ) THEN
     CALL basal_tracer_source_paul(Time, Thickness, T_prog)
   ENDIF
 
@@ -262,22 +270,24 @@ end subroutine basal_tracer_source
 ! </SUBROUTINE> NAME="basal_tracer_source"
 
 !#######################################################################
-! <SUBROUTINE NAME="basal_tracer_source_0">
+! <SUBROUTINE NAME="basal_tracer_source_1">
 !
 ! <DESCRIPTION>
 ! This subroutine calculates thickness weighted and density weighted
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source_0(Time, Thickness, T_prog)
+subroutine basal_tracer_source_1(Time, Thickness, T_prog, dtime,basal)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
+  real,                         intent(in)    :: dtime
+  real, dimension(isd:,jsd:),   intent(in)    :: basal
   integer :: taum1, tau
-  integer :: i, j, k, n
+  integer :: i, j, k, n, nz
   integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
-  integer, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
+  real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
   real, allocatable, dimension(:,:) :: qisf          ! heat flux
   real                              :: rau0          ! volumic mass of reference     [kg/m3]
   real                              :: rcp           ! heat capacity     [J/K]
@@ -288,9 +298,16 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
   real, allocatable, dimension(:,:,:) :: zt_frz3d        ! Freezing point temperature
   real, allocatable, dimension(:,:,:,:) :: risf_tsc_3d_b , risf_tsc_3d ! before and now T & S isf contents [K.m/s & PSU.m/s]
-  integer ::   ikt, ikb     ! local integers
-!#######################################################################
+  integer ::   ikt, ikb, import_file     ! local integers
+  !rivermix
+  real    :: depth, thkocean
+  real    :: delta(nk), delta_rho_tocean(nk), delta_rho0_triver(nk)
+  real    :: zextra, zinsert, tracerextra, tracernew(nk)
+  real    :: tracer_input
+  real    :: maxinsertiondepth
+  real, dimension(:,:), allocatable :: tracer_flux
 
+!#######################################################################
 
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
@@ -299,133 +316,154 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   allocate ( rhisf_tbl(isd:ied,jsd:jed), r1_hisf_tbl(isd:ied,jsd:jed) )
   allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc(isd:ied,jsd:jed,2) ) !1=temp 2=sal
   allocate ( risf_tsc_3d_b(isd:ied,jsd:jed,nk,2), risf_tsc_3d(isd:ied,jsd:jed,nk,2) ) !1=temp 2=sal
+  allocate ( tracer_flux(isd:ied,jsd:jed) )
 
   taum1 = Time%taum1
   tau   = Time%tau
   wrk1  = 0.0 !Asumes T=0 and S=0
 
-  !do n=1,size(T_prog(:))
   do n=1,num_prog_tracers
+    T_prog(n)%wrk1(:,:,:) = 0.0
+  enddo
+  delta             = 0.0
+  delta_rho_tocean  = 0.0
+  delta_rho0_triver = 0.0
+  tracer_flux       = 0.0
 
-    ! Need to reinitialise wrk2 here due to limiting of temperature.
-    wrk2  = 0.0
+  !This gives error 
+  !if (Basal(1)%id > 0) then
+  !   ! get basal value for current time
+  !   call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  !endif
 
-    fwfisf(:,:) = 1 ! fresh water flux from the isf (fwfisf <0 mean melting)
+  import_file = 0
 
-    rLfusisf    = 0.334e6    !: latent heat of fusion of ice shelf     [J/kg]
-    qisf(:,:)   = fwfisf(:,:) * rLfusisf               ! heat flux
-
-    rau0        = 1026                 !: volumic mass of reference     [kg/m3]
-    rcp         = 3991.86795711963      !: heat capacity     [J/K]
-    rau0_rcp    = rau0 * rcp
-    r1_rau0_rcp = 1. / rau0_rcp
-    r1_rau0     = 1. / rau0
-
-    soce        =   34.7        ! Sea salinity, approximation Pedro
-    stbl(:,:)   = soce          ! Salinity top boundary layer
-
-    !Freezing point temp
-    !DO jj = 1,jpj
-    !   DO ji = 1,jpi
-    !      zdep(ji,jj)=gdepw_n(ji,jj,misfkt(ji,jj))
-    !   END DO
-    !END DO
-
-    !CALL eos_fzp( stbl(:,:), zt_frz(:,:), zdep(:,:) ) ! freezing point temperature at depth z
-    zt_frz(:,:) = 273.15 
-    zt_frz3d(:,:,:) = 273.15 
-
-    ! Before and now values
-    risf_tsc(:,:,1) = qisf(:,:) * r1_rau0_rcp - fwfisf(:,:) * zt_frz(:,:) * r1_rau0 !:before and now T & S isf contents [K.m/s & PSU.m/s]
-    risf_tsc(:,:,2) = 0.0
-    risf_tsc_b(:,:,:)= risf_tsc(:,:,:) !Equal for the moment, constant source
-    ! 10 *  ((0.334e6 * (1/(1026*3991.86795711963)) ) - ( 272 * (1/1026)))
-
-    !Some dummy values for ice shelfs geometry
-    misfkt(:,:) = 4
-    misfkb(:,:) = 6
-    !rhisf_tbl(:,:) = SUM(Thickness%dzt(:,:,misfkt:misfkb))
-    rhisf_tbl(:,:) = 50 !Thickness%dzt(:,:,4)
-    r1_hisf_tbl(:,:) = 1. / rhisf_tbl(:,:)
-
-
-    do j=jsc,jec
-       do i=isc,iec
-          ikt = misfkt(i,j)
-          ikb = misfkb(i,j)
-          ! level fully include in the ice shelf boundary layer
-          ! sign - because fwf sign of evapo (rnf sign of precip)
-          do k = ikt, ikb - 1
-            risf_tsc_3d(i,j,k,1) = (qisf(i,j) * r1_rau0_rcp - fwfisf(i,j) * zt_frz3d(i,j,k) * r1_rau0) * r1_hisf_tbl(i,j) ! K/s
-            risf_tsc_3d(i,j,k,2) = 0.0
-          enddo
+  if ( import_file == 1) THEN
+     fwfisf(:,:) = 0 ! fresh water flux from the isf (fwfisf <0 mean melting)
+    do j=jsd,jed
+       do i=isd,ied
+          fwfisf(i,j)=wrk1(i,j,1)
        enddo
     enddo
-    risf_tsc_3d_b(:,:,:,:)= risf_tsc_3d(:,:,:,:) !Equal for the moment, constant source
+  else
+    fwfisf(:,:) = basal(:,:)
+  endif
 
-!    ! compute bottom level of isf tbl and thickness of tbl below the ice shelf
-!    DO jj = 1,jpj
-!        DO ji = 1,jpi
-!           ikt = misfkt(ji,jj)
-!           ikb = misfkt(ji,jj)
-!           ! thickness of boundary layer at least the top level thickness
-!           rhisf_tbl(ji,jj) = MAX(rhisf_tbl_0(ji,jj), e3t_n(ji,jj,ikt))
-!            ! determine the deepest level influenced by the boundary layer
-!           DO jk = ikt+1, mbkt(ji,jj)
-!              IF( (SUM(e3t_n(ji,jj,ikt:jk-1)) < rhisf_tbl(ji,jj)) .AND. (tmask(ji,jj,jk) == 1) )   ikb = jk
-!           END DO
-!           rhisf_tbl(ji,jj) = MIN(rhisf_tbl(ji,jj), SUM(e3t_n(ji,jj,ikt:ikb))) ! limit the tbl to water thickness.
-!           misfkb(ji,jj) = ikb                                                   ! last wet level of the tbl
-!           r1_hisf_tbl(ji,jj) = 1._wp / rhisf_tbl(ji,jj)
+!  rLfusisf    = 0.334e6    !: latent heat of fusion of ice shelf     [J/kg]
+!  qisf(:,:)   = fwfisf(:,:) * rLfusisf               ! heat flux
 !
-!           zhk           = SUM( e3t_n(ji, jj, ikt:ikb - 1)) * r1_hisf_tbl(ji,jj) ! proportion of tbl cover by cell from ikt to ikb - 1
-!           ralpha(ji,jj) = rhisf_tbl(ji,jj) * (1._wp - zhk ) / e3t_n(ji,jj,ikb)  ! proportion of bottom cell influenced by boundary layer
-!        END DO
-!     END DO
-
-    if (trim(T_prog(n)%name) == 'temp' ) then
-       do j=jsc,jec
-          do i=isc,iec
-             ikt = misfkt(i,j)
-             ikb = misfkb(i,j)
-             ! level fully include in the ice shelf boundary layer
-             ! sign - because fwf sign of evapo (rnf sign of precip)
-             do k = ikt, ikb - 1
-                wrk2(i,j,k) = wrk2(i,j,k) + 0.5 * ( risf_tsc_3d_b(i,j,k,1) + risf_tsc_3d(i,j,k,1) )
-             enddo
-          enddo
-       enddo
-    end if
-
-    if ( trim(T_prog(n)%name) == 'salt' ) then
-       do j=jsc,jec
-          do i=isc,iec
-             ikt = misfkt(i,j)
-             ikb = misfkb(i,j)
-             ! level fully include in the ice shelf boundary layer
-             ! sign - because fwf sign of evapo (rnf sign of precip)
-             do k = ikt, ikb - 1
-                wrk2(i,j,k) = wrk2(i,j,k) + 0.5 * ( risf_tsc_3d_b(i,j,k,2) + risf_tsc_3d(i,j,k,2) )
-             enddo
-          enddo
-       enddo   
-    end if
-
-    ! Update tendency
-    do k = 1, nk
-        do j = jsc, jec
-            do i = isc, iec
-                T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) &
-                                              + wrk2(i,j,k)
-            end do
-        end do
-    end do
+!  rau0        = 1026                 !: volumic mass of reference     [kg/m3]
+!  rcp         = 3991.86795711963      !: heat capacity     [J/K]
+!  rau0_rcp    = rau0 * rcp
+!  r1_rau0_rcp = 1. / rau0_rcp
+!  r1_rau0     = 1. / rau0
+!
+!  soce        =   34.7        ! Sea salinity, approximation Pedro
+!  stbl(:,:)   = soce          ! Salinity top boundary layer
+!
+!
+!  !CALL eos_fzp( stbl(:,:), zt_frz(:,:), zdep(:,:) ) ! freezing point temperature at depth z
+!  zt_frz(:,:) = 273.15
+!  zt_frz3d(:,:,:) = 273.15
+!
+!  ! Before and now values
+!  risf_tsc(:,:,1) = qisf(:,:) * r1_rau0_rcp - fwfisf(:,:) * zt_frz(:,:) * r1_rau0 !:before and now T & S isf contents [K.m/s & PSU.m/s]
+!  risf_tsc(:,:,2) = 0.0
+!  risf_tsc_b(:,:,:)= risf_tsc(:,:,:) !Equal for the moment, constant source
+!  ! 10 *  ((0.334e6 * (1/(1026*3991.86795711963)) ) - ( 272 * (1/1026)))
+!
+!  !Some dummy values for ice shelfs geometry
+!  misfkt(:,:) = 1
+!  misfkb(:,:) = 8
+!  !rhisf_tbl(:,:) = SUM(Thickness%dzt(:,:,misfkt:misfkb))
+!  rhisf_tbl(:,:) = 50 !Thickness%dzt(:,:,4)
+!  r1_hisf_tbl(:,:) = 1. / rhisf_tbl(:,:)
+!
+!  do j=jsc,jec
+!     do i=isc,iec
+!        ikt = misfkt(i,j)
+!        ikb = misfkb(i,j)
+!        ! level fully include in the ice shelf boundary layer
+!        ! sign - because fwf sign of evapo (rnf sign of precip)
+!        do k = ikt, ikb - 1
+!           risf_tsc_3d(i,j,k,1) = (qisf(i,j) * r1_rau0_rcp - fwfisf(i,j) * zt_frz3d(i,j,k) * r1_rau0) * r1_hisf_tbl(i,j) ! K/s
+!           risf_tsc_3d(i,j,k,2) = 0.0
+!        enddo
+!     enddo
+!  enddo
+!  risf_tsc_3d_b(:,:,:,:)= risf_tsc_3d(:,:,:,:) !Equal for the moment, constant source
 
 
-    !if (id_basal_tend(n) > 0) call diagnose_3d(Time, Grd, id_basal_tend(n), &
-    !     T_prog(n)%conversion*wrk2(:,:,:))
+  ! Need to reinitialise wrk2 here due to limiting of temperature.
+  wrk2  = 0.0
 
-  enddo !n
+  do j=jsc,jec
+     do i=isc,iec
+
+        if (fwfisf(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
+
+
+        ! the array "river" contains the volume rate (m/s) or mass
+        ! rate (kg/m2/sec) of fluid with tracer 
+        ! that is to be distributed in the vertical. 
+           !maxinsertiondepth = Grd%zt(misfkb(i,j))
+           maxinsertiondepth = 40
+           depth = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
+           misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+           misfkb(i,j)    = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
+
+           ! determine fractional thicknesses of grid cells 
+           thkocean = 0.0
+           do k=misfkt(i,j),misfkb(i,j)
+              thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
+           enddo
+           do k=misfkt(i,j),misfkb(i,j)
+              delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
+           enddo
+
+           do n=1,num_prog_tracers
+              tracer_flux(i,j) = fwfisf(i,j)
+
+              zextra=0.0
+              do k=misfkb(i,j),misfkt(i,j),-1
+                 tracernew(k) = 0.0
+
+                 if (k.eq.misfkb(i,j)) then
+                     tracerextra=0.0
+                 else
+                     tracerextra = tracernew(k+1)
+                 endif
+
+                 zinsert = tracer_flux(i,j)*dtime*delta(k)
+                 tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
+                                 & T_prog(n)%triver(i,j)*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                 zextra=zextra+zinsert
+              enddo
+
+              k=1 !Treatment at the surface
+              if ( misfkt(i,j) == k ) then
+                 T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+tracer_flux(i,j)*dtime) -&
+                                       T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+              endif 
+
+              do k=misfkt(i,j),misfkb(i,j)
+                 T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 
+              enddo
+
+              if(debug_all_in_top_cell) then
+                  k=1
+                  T_prog(n)%wrk1(i,j,:) = 0.0
+                  T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*tracer_flux(i,j)*T_prog(n)%triver(i,j)
+              endif
+
+              do k=misfkt(i,j),misfkb(i,j)
+                 T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
+              enddo
+
+           enddo !n
+        endif ! fwfisf > 0
+     enddo !i
+  enddo !j
 
   deallocate ( misfkt, misfkb )
   deallocate ( fwfisf,   qisf )
@@ -434,9 +472,10 @@ subroutine basal_tracer_source_0(Time, Thickness, T_prog)
   deallocate ( rhisf_tbl, r1_hisf_tbl )
   deallocate ( risf_tsc_b, risf_tsc ) !1=temp 2=sal
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
-end subroutine basal_tracer_source_0
-! </SUBROUTINE> NAME="basal_tracer_source_0"
+  deallocate ( tracer_flux )
 
+end subroutine basal_tracer_source_1
+! </SUBROUTINE> NAME="basal_tracer_source_1"
 
 
 !! </SUBROUTINE> NAME="eos_fzp"
