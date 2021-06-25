@@ -1359,7 +1359,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     call ocean_shortwave_init(Grid, Domain, Time, Dens, T_prog(:), vert_coordinate, Ocean_options)
     call ocean_sponges_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options)
 !Pedro
-    call ocean_basal_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options)
+    call ocean_basal_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options, Dens)
 !Pedro
     call ocean_sponges_velocity_init(Grid, Domain, Time, dtime_u, Ocean_options)
     call ocean_sponges_eta_init(Grid, Domain, Time, dtime_t, Ocean_options)
@@ -1617,27 +1617,32 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! obtain surface boundary fluxes from coupler
        call mpp_clock_begin(id_sbc)
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
-            T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, calving, &
+            T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, calving, &
             upme, uriver, swflx, swflx_vis, patm)
-!Pedro Put antarctic runoff in basal and zero-out in it
-      basal(:,:) = 0
-      do j=jsc,jec
-        do i=isc,iec
-           if ( j < 120 ) then
-              basal(i,j) = runoff(i,j)
-              runoff(i,j) = 0
-           endif
-        enddo
-      enddo
-
-!Pedro
        call mpp_clock_end(id_sbc)
 
        ! compute "flux adjustments" (e.g., surface tracer restoring, flux correction)
        call mpp_clock_begin(id_flux_adjust)
+       !Pedro
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 40 ) then
+       !        river(i,j) = river(i,j) + basal(i,j)
+       !     endif
+       !  enddo
+       !enddo
+       !Pedro
        call flux_adjust(Time, T_diag(1:num_diag_tracers), Dens, Ext_mode, &
                         T_prog(1:num_prog_tracers), Velocity, river, melt, pme)
-
+       !Pedro
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 40 ) then
+       !        river(i,j) = river(i,j) - basal(i,j)
+       !     endif
+       !  enddo
+       !enddo
+       !Pedro
        call mpp_clock_end(id_flux_adjust)
 
        ! calculate bottom momentum fluxes and bottom tracer fluxes
@@ -1667,9 +1672,27 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! compute vertical mixing coefficients. 
        ! if use kpp, also add nonlocal tendency to T_prog%th_tendency 
        call mpp_clock_begin(id_vmix)    
+       !Pedro
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 40 ) then
+       !        river(i,j) = river(i,j) + basal(i,j)
+       !     endif
+       !  enddo
+       !enddo
+       !Pedro
        call vert_mix_coeff(Time, Thickness, Velocity, T_prog(1:num_prog_tracers),&
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
             river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave)
+       !Pedro
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 40 ) then
+       !        river(i,j) = river(i,j) - basal(i,j)
+       !     endif
+       !  enddo
+       !enddo
+       !Pedro
        call mpp_clock_end(id_vmix)
 
        ! compute ocean tendencies from tracer packages
@@ -1696,13 +1719,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_sponges_tracer)
        call sponge_tracer_source(Time, Thickness, T_prog(1:num_prog_tracers)) 
        call mpp_clock_end(id_sponges_tracer)
-!Pedro       
-       ! add basal to T_prog%th_tendency 
-       call mpp_clock_begin(id_basal_tracer)
-       call basal_tracer_source(Time, Thickness, T_prog(1:num_prog_tracers), dtime_t, basal) 
-       call mpp_clock_end(id_basal_tracer)
-!Pedro
-
 
        ! add increments to T_prog%th_tendency as used in Australian OFAM/Bluelink
        call mpp_clock_begin(id_increment_tracer)
@@ -1720,10 +1736,39 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_end(id_xlandinsert)
 
        ! add river discharge to T_prog%th_tendency and/or enhance diff_cbt next to river mouths 
+       !Pedro
+       do j=jsc,jec
+         do i=isc,iec
+            if ( j < 40 ) then
+               basal(i,j) = river(i,j)
+               river(i,j) = 0
+            endif
+         enddo
+       enddo
+       !Pedro
        call mpp_clock_begin(id_rivermix)
        call rivermix (Time, Thickness, Dens, T_prog(1:num_prog_tracers), river, runoff, calving, &
                       diff_cbt, index_temp, index_salt)
        call mpp_clock_end(id_rivermix)
+
+!Pedro       
+       ! add basal to T_prog%th_tendency 
+       call mpp_clock_begin(id_basal_tracer)
+       call basal_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
+                                basal,diff_cbt,index_temp, index_salt)
+!Pedro
+      do j=jsc,jec
+        do i=isc,iec
+           if ( j < 40 ) then
+              river(i,j) = river(i,j) + basal(i,j)
+              basal(i,j) = 0
+           endif
+        enddo
+      enddo
+!Pedro
+
+       call mpp_clock_end(id_basal_tracer)
+!Pedro
 
        ! add discharge of dense shelf water into abyss to T_prog%th_tendency
        call mpp_clock_begin(id_overflow)
