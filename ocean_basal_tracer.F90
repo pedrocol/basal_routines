@@ -231,7 +231,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   module_is_initialized = .TRUE.
 
   !num_prog_tracers = size(T_prog(:))
-  num_prog_tracers = 1
+  num_prog_tracers = 3
 
   allocate( Basal(1) )
 
@@ -278,7 +278,9 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   do n = 1, num_prog_tracers
     ! Read basal fw flux  data
     name = 'INPUT/basal_fw.nc'
-    Basal(n)%id = init_external_field(name,'basal_fw',domain=Domain%domain2d)
+    if ( n==1 ) Basal(n)%id = init_external_field(name,'meltingFlux',domain=Domain%domain2d)
+    if ( n==2 ) Basal(n)%id = init_external_field(name,'sodepmax_isf',domain=Domain%domain2d)
+    if ( n==3 ) Basal(n)%id = init_external_field(name,'sodepmin_isf',domain=Domain%domain2d)
     if (Basal(n)%id < 1) then
       call mpp_error(FATAL,&
       '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
