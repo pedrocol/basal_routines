@@ -415,6 +415,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   misfkt(:,:) = 0
   misfkb(:,:) = 0
+  basal(:,:) = 0
 
   param_choice = 1
   cellarea_r = 1.0/(epsln + Grd%tcellsurf)
