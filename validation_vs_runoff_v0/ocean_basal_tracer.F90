@@ -71,7 +71,7 @@ type ocean_basal_type
    character(len=32) :: name                                 ! tracer name corresponding to basal
    real, dimension(:,:,:), pointer :: damp_coeff   => NULL() ! 3d inverse damping rate (tracer units/ sec)
    real, dimension(:,:)  , pointer :: damp_coeff2d => NULL() ! 2d inverse damping rate (tracer units/ sec)
-   real, dimension(:,:)  , pointer :: basal_fw     => NULL() ! runoff
+   real, dimension(:,:)  , pointer :: field        => NULL() ! runoff
 end type ocean_basal_type
 
 
@@ -90,7 +90,7 @@ logical :: used
 integer, dimension(:), allocatable :: id_basal_tend
 integer :: id_basal_fwflx        =-1
 
-integer, dimension(:), allocatable :: id_basalmix
+integer, dimension(:), allocatable :: id_basalfw
 integer, dimension(:), allocatable :: id_basalmix_on_nrho
 
 integer :: id_neut_rho_basalmix    =-1
@@ -230,10 +230,9 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   module_is_initialized = .TRUE.
 
-  !num_prog_tracers = size(T_prog(:))
-  num_prog_tracers = 1
+  num_prog_tracers = 3
 
-  allocate( Basal(1) )
+  allocate ( Basal(num_prog_tracers) )
 
   call write_version_number(version, tagname)
 
@@ -278,13 +277,56 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   do n = 1, num_prog_tracers
     ! Read basal fw flux  data
     name = 'INPUT/basal_fw.nc'
-    Basal(n)%id = init_external_field(name,'basal_fw',domain=Domain%domain2d)
-    if (Basal(n)%id < 1) then
-      call mpp_error(FATAL,&
-      '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+    if ( n == 1 ) then
+       Basal(n)%id = init_external_field(name,'meltingFlux',domain=Domain%domain2d)
+       if (Basal(n)%id < 1) then
+         call mpp_error(FATAL,&
+         '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+       endif
+       Basal(n)%name = 'basal_fw' 
+    elseif ( n == 2 ) then
+       Basal(n)%id = init_external_field(name,'sodepmin_isf',domain=Domain%domain2d)
+       if (Basal(n)%id < 1) then
+         call mpp_error(FATAL,&
+         '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+       endif
+       Basal(n)%name = 'depmin' 
+    elseif ( n == 3 ) then
+       Basal(n)%id = init_external_field(name,'sodepmax_isf',domain=Domain%domain2d)
+       if (Basal(n)%id < 1) then
+         call mpp_error(FATAL,&
+         '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+       endif
+       Basal(n)%name = 'depmax' 
     endif
     write(stdoutunit,*) '==> Using basal freshwater flux data specified from file '//trim(name)
   enddo
+
+  !name = 'INPUT/basal_fw.nc'
+  !if (file_exist(name)) then
+  !   write(stdoutunit,*) '==> basal melting Using values specified from file ',name
+  !   allocate ( depmin(isd:ied,jsd:jed),depmax(isd:ied,jsd:jed),basal_fw(isd:ied,jsd:jed) )
+  !   PRINT *, 'depmin',size(depmin,1),size(depmin,2)
+     !write(stdoutunit,*) 'depmin',shape(Basal(1)%depmin(:,:)),'Basal',shape(Basal(1))
+     !Basal(1)%depmin(:,:)   = 0.0
+     !Basal(1)%depmax(:,:)   = 0.0
+     !Basal(1)%basal_fw(:,:) = 0.0
+     !call read_data(name,'sodepmin_isf',Basal(1)%depmin  ,domain=Domain%domain2d,timelevel=1)
+     !call read_data(name,'sodepmax_isf',Basal(1)%depmax  ,domain=Domain%domain2d,timelevel=1)
+     !call read_data(name,'meltingFlux' ,Basal(1)%basal_fw,domain=Domain%domain2d,timelevel=1)
+  !   call read_data(name,'sodepmin_isf',depmin  ,domain=Domain%domain2d,timelevel=1)
+  !   call read_data(name,'sodepmax_isf',depmax  ,domain=Domain%domain2d,timelevel=1)
+  !   call read_data(name,'meltingFlux' ,basal_fw,domain=Domain%domain2d,timelevel=1)
+  !else
+  !   write(stdoutunit,*) '==> basal melting no file found ',name
+  !endif
+  !    do j=jsd,jed
+  !     do i=isd,ied
+  !        PRINT *, depmin(i,j)
+  !     enddo
+  !  enddo
+
+
 
   ! register diagnostic outputs
   id_basal_fwflx = register_diag_field('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),&
@@ -303,13 +345,13 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   ! register for diag_manager
   num_prog_tracers = size(T_prog(:))
-  allocate (id_basalmix(num_prog_tracers))
+  allocate (id_basalfw(num_prog_tracers))
   allocate (id_basalmix_on_nrho(num_prog_tracers))
-  id_basalmix   = -1
+  id_basalfw   = -1
   id_basalmix_on_nrho   = -1
   do n=1,num_prog_tracers
      if(T_prog(n)%name == 'temp') then
-        id_basalmix(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_basalmix', &
+        id_basalfw(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_basalmix', &
                          Grd%tracer_axes(1:3), Time%model_time,                                 &
                          'cp*basalmix*rho_dzt*temp', 'Watt/m^2',                                &
                          missing_value=missing_value, range=(/-1.e10,1.e10/))
@@ -318,7 +360,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
                          'cp*basalmix*rho_dzt*temp binned to neutral density', 'Watt/m^2',       &
                          missing_value=missing_value, range=(/-1.e20,1.e20/))
      else
-        id_basalmix(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_basalmix', &
+        id_basalfw(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_basalmix', &
                          Grd%tracer_axes(1:3), Time%model_time,                                 &
                          'basalmix*rho_dzt*tracer for '//trim(T_prog(n)%name),                  &
                          trim(T_prog(n)%flux_units),                                            &
@@ -336,7 +378,9 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   !try to write out basal fwflx data to output for test
   ! get sponge value for current time
   wrk1=0.0
-  call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  !call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  !call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
+  !call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
   call diagnose_3d(Time, Grd, id_basal_fwflx,wrk1(:,:,:))
 
   call watermass_diag_init_ba(Time, Dens)
@@ -378,8 +422,8 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   ENDIF
 
   do n=1,num_prog_tracers
-     if(id_basalmix(n) > 0) then
-        call diagnose_3d(Time, Grd, id_basalmix(n), T_prog(n)%wrk1(:,:,:)*T_prog(n)%conversion)
+     if(id_basalfw(n) > 0) then
+        call diagnose_3d(Time, Grd, id_basalfw(n), T_prog(n)%wrk1(:,:,:)*T_prog(n)%conversion)
      endif
      if(id_basalmix_on_nrho(n) > 0) then
         call diagnose_3d_rho(Time, Dens, id_basalmix_on_nrho(n), T_prog(n)%wrk1*T_prog(n)%conversion)
@@ -401,13 +445,13 @@ end subroutine basal_tracer_source
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff_cbt,index_temp, index_salt)
+subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_time_steps_type),  intent(in)    :: Time_steps
   type(ocean_thickness_type),   intent(in)    :: Thickness
   type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
-  real, dimension(isd:,jsd:),   intent(in)    :: basal
+  real, dimension(isd:,jsd:),   intent(in)    :: basal_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
   real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
@@ -415,6 +459,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   integer :: taum1, tau
   integer :: i, j, k, n, nz
   integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
+  real, allocatable, dimension(:,:)    :: misfzt,misfzb ! Top and bottom input depths
   real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
   real, allocatable, dimension(:,:) :: qisf          ! heat flux
   real                              :: rau0          ! volumic mass of reference     [kg/m3]
@@ -427,6 +472,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   real, allocatable, dimension(:,:,:) :: zt_frz3d        ! Freezing point temperature
   real, allocatable, dimension(:,:,:,:) :: risf_tsc_3d_b , risf_tsc_3d ! before and now T & S isf contents [K.m/s & PSU.m/s]
   integer ::   ikt, ikb, import_file     ! local integers
+  integer :: nvars
   !rivermix
   real    :: depth, thkocean
   real    :: delta(nk), delta_rho_tocean(nk), delta_rho0_triver(nk)
@@ -436,11 +482,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   real, dimension(:,:), allocatable :: tracer_flux
   logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
   logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
-
-
+  integer :: stdoutunit,stdlogunit
+  character(len=128) :: name
+  stdoutunit=stdout();stdlogunit=stdlog()
 !#######################################################################
 
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
+  allocate ( misfzt(isd:ied,jsd:jed), misfzb(isd:ied,jsd:jed) )
   allocate ( fwfisf(isd:ied,jsd:jed),   qisf(isd:ied,jsd:jed) )
   allocate (   stbl(isd:ied,jsd:jed), zt_frz(isd:ied,jsd:jed) )
   allocate (   zt_frz3d(isd:ied,jsd:jed,nk) )
@@ -454,6 +502,9 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   wrk1  = 0.0 !Asumes T=0 and S=0
   dtime = Time_steps%dtts
   num_prog_tracers = size(T_prog(:))
+  nvars = 3
+  misfzt = 0
+  misfzb = 0
 
   do n=1,num_prog_tracers
     T_prog(n)%wrk1(:,:,:) = 0.0
@@ -463,24 +514,46 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   delta_rho0_triver = 0.0
   tracer_flux       = 0.0
 
-  !This gives error 
-  !if (Basal(1)%id > 0) then
-  !   ! get basal value for current time
-  !   call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
-  !endif
+  import_file = 2
 
-  import_file = 0
-
-  if ( import_file == 1) THEN
-     fwfisf(:,:) = 0 ! fresh water flux from the isf (fwfisf <0 mean melting)
-    do j=jsd,jed
-       do i=isd,ied
-          fwfisf(i,j)=wrk1(i,j,1)
+  if ( import_file == 2) then
+    if ( Basal(1)%id > 0 ) then
+       ! get basal value for current time
+       call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+       do j=jsd,jed
+         do i=isd,ied
+            fwfisf(i,j)=wrk1(i,j,1)
+         enddo
        enddo
-    enddo
+    endif
+    if (Basal(2)%id > 0) then
+       wrk1  = 0.0
+       ! get basal value for current time
+       call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
+       do j=jsd,jed
+         do i=isd,ied
+            misfzt(i,j)=wrk1(i,j,1)
+         enddo
+       enddo
+    endif
+    if (Basal(3)%id > 0) then
+       wrk1  = 0.0 
+       ! get basal value for current time
+       call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
+       do j=jsd,jed
+         do i=isd,ied
+            misfzb(i,j)=wrk1(i,j,1)
+         enddo
+       enddo
+    endif
   else
-    fwfisf(:,:) = basal(:,:)
+    fwfisf(:,:) = basal_i(:,:)
   endif
+
+  !For this first test we keep the runoff
+  fwfisf(:,:) = basal_i(:,:)
+
+
 
 !  rLfusisf    = 0.334e6    !: latent heat of fusion of ice shelf     [J/kg]
 !  qisf(:,:)   = fwfisf(:,:) * rLfusisf               ! heat flux
@@ -541,9 +614,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
 
         ! the array "river" contains the volume rate (m/s) or mass
         ! rate (kg/m2/sec) of fluid with tracer 
-        ! that is to be distributed in the vertical. 
+        ! that is to be distributed in the vertical.
+           mininsertiondepth = misfzt(i,j)
+           depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
+           misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
+           misfkt(i,j) = max(1,misfkt(i,j))
            !maxinsertiondepth = Grd%zt(misfkb(i,j))
-           maxinsertiondepth = 40
+           maxinsertiondepth = misfzb(i,j)
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
            misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
            misfkb(i,j) = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
@@ -603,6 +680,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   enddo !j
 
   deallocate ( misfkt, misfkb )
+  deallocate ( misfzt, misfzb )
   deallocate ( fwfisf,   qisf )
   deallocate (   stbl, zt_frz )
   deallocate ( zt_frz3d )
@@ -610,6 +688,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal,diff
   deallocate ( risf_tsc_b, risf_tsc ) !1=temp 2=sal
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
   deallocate ( tracer_flux )
+
 
 !  if(river_diffuse_temp) then
 !     call river_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1))

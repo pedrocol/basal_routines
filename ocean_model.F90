@@ -1672,27 +1672,9 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! compute vertical mixing coefficients. 
        ! if use kpp, also add nonlocal tendency to T_prog%th_tendency 
        call mpp_clock_begin(id_vmix)    
-       !Pedro
-       !do j=jsc,jec
-       !  do i=isc,iec
-       !     if ( j < 40 ) then
-       !        river(i,j) = river(i,j) + basal(i,j)
-       !     endif
-       !  enddo
-       !enddo
-       !Pedro
        call vert_mix_coeff(Time, Thickness, Velocity, T_prog(1:num_prog_tracers),&
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
             river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave)
-       !Pedro
-       !do j=jsc,jec
-       !  do i=isc,iec
-       !     if ( j < 40 ) then
-       !        river(i,j) = river(i,j) - basal(i,j)
-       !     endif
-       !  enddo
-       !enddo
-       !Pedro
        call mpp_clock_end(id_vmix)
 
        ! compute ocean tendencies from tracer packages
@@ -1737,14 +1719,14 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
        ! add river discharge to T_prog%th_tendency and/or enhance diff_cbt next to river mouths 
        !Pedro
-       do j=jsc,jec
-         do i=isc,iec
-            if ( j < 40 ) then
-               basal(i,j) = river(i,j)
-               river(i,j) = 0
-            endif
-         enddo
-       enddo
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 40 ) then
+       !        basal(i,j) = river(i,j)
+       !        river(i,j) = 0
+       !     endif
+       !  enddo
+       !enddo
        !Pedro
        call mpp_clock_begin(id_rivermix)
        call rivermix (Time, Thickness, Dens, T_prog(1:num_prog_tracers), river, runoff, calving, &
