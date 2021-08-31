@@ -1719,14 +1719,14 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
        ! add river discharge to T_prog%th_tendency and/or enhance diff_cbt next to river mouths 
        !Pedro
-       !do j=jsc,jec
-       !  do i=isc,iec
-       !     if ( j < 40 ) then
-       !        basal(i,j) = river(i,j)
-       !        river(i,j) = 0
-       !     endif
-       !  enddo
-       !enddo
+       do j=jsc,jec
+         do i=isc,iec
+            if ( j < 40 ) then
+               basal(i,j) = river(i,j)
+               river(i,j) = 0
+            endif
+         enddo
+       enddo
        !Pedro
        call mpp_clock_begin(id_rivermix)
        call rivermix (Time, Thickness, Dens, T_prog(1:num_prog_tracers), river, runoff, calving, &

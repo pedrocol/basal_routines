@@ -288,45 +288,19 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
        Basal(n)%id = init_external_field(name,'sodepmin_isf',domain=Domain%domain2d)
        if (Basal(n)%id < 1) then
          call mpp_error(FATAL,&
-         '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+         '==>Error: in ocean_basal_tracer_mod:  basal front values are not specified')
        endif
        Basal(n)%name = 'depmin' 
     elseif ( n == 3 ) then
        Basal(n)%id = init_external_field(name,'sodepmax_isf',domain=Domain%domain2d)
        if (Basal(n)%id < 1) then
          call mpp_error(FATAL,&
-         '==>Error: in ocean_basal_tracer_mod:  basal fw values are not specified')
+         '==>Error: in ocean_basal_tracer_mod:  basal GL values are not specified')
        endif
        Basal(n)%name = 'depmax' 
     endif
     write(stdoutunit,*) '==> Using basal freshwater flux data specified from file '//trim(name)
   enddo
-
-  !name = 'INPUT/basal_fw.nc'
-  !if (file_exist(name)) then
-  !   write(stdoutunit,*) '==> basal melting Using values specified from file ',name
-  !   allocate ( depmin(isd:ied,jsd:jed),depmax(isd:ied,jsd:jed),basal_fw(isd:ied,jsd:jed) )
-  !   PRINT *, 'depmin',size(depmin,1),size(depmin,2)
-     !write(stdoutunit,*) 'depmin',shape(Basal(1)%depmin(:,:)),'Basal',shape(Basal(1))
-     !Basal(1)%depmin(:,:)   = 0.0
-     !Basal(1)%depmax(:,:)   = 0.0
-     !Basal(1)%basal_fw(:,:) = 0.0
-     !call read_data(name,'sodepmin_isf',Basal(1)%depmin  ,domain=Domain%domain2d,timelevel=1)
-     !call read_data(name,'sodepmax_isf',Basal(1)%depmax  ,domain=Domain%domain2d,timelevel=1)
-     !call read_data(name,'meltingFlux' ,Basal(1)%basal_fw,domain=Domain%domain2d,timelevel=1)
-  !   call read_data(name,'sodepmin_isf',depmin  ,domain=Domain%domain2d,timelevel=1)
-  !   call read_data(name,'sodepmax_isf',depmax  ,domain=Domain%domain2d,timelevel=1)
-  !   call read_data(name,'meltingFlux' ,basal_fw,domain=Domain%domain2d,timelevel=1)
-  !else
-  !   write(stdoutunit,*) '==> basal melting no file found ',name
-  !endif
-  !    do j=jsd,jed
-  !     do i=isd,ied
-  !        PRINT *, depmin(i,j)
-  !     enddo
-  !  enddo
-
-
 
   ! register diagnostic outputs
   id_basal_fwflx = register_diag_field('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),&
@@ -378,9 +352,9 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   !try to write out basal fwflx data to output for test
   ! get sponge value for current time
   wrk1=0.0
-  !call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
-  !call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
-  !call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
+  call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
+  call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
   call diagnose_3d(Time, Grd, id_basal_fwflx,wrk1(:,:,:))
 
   call watermass_diag_init_ba(Time, Dens)
@@ -415,7 +389,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   misfkt(:,:) = 0
   misfkb(:,:) = 0
-  basal(:,:) = 0
+  !basal(:,:) = 0
 
   param_choice = 1
   cellarea_r = 1.0/(epsln + Grd%tcellsurf)
@@ -558,9 +532,9 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   endif
 
   !For this test we store the fw flux in basal_i to copy it later to river
-  basal_i(:,:) = fwfisf(:,:)
-  !For this first test we use the original runoff values
-  !fwfisf(:,:) = basal_i(:,:)
+  !basal_i(:,:) = fwfisf(:,:)
+  !For this first test we use the original river values
+  fwfisf(:,:) = basal_i(:,:)
 
   ! Need to reinitialise wrk2 here due to limiting of temperature.
   wrk2  = 0.0
@@ -644,7 +618,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   deallocate (   stbl, zt_frz )
   deallocate ( zt_frz3d )
   deallocate ( rhisf_tbl, r1_hisf_tbl )
-  deallocate ( risf_tsc_b, risf_tsc ) !1=temp 2=sal
+  deallocate ( risf_tsc_b, risf_tsc )
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
   deallocate ( tracer_flux )
 
