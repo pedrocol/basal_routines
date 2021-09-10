@@ -3291,7 +3291,8 @@ end subroutine ocean_sfc_end
 !
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
-                         pme, melt, river, runoff, basal, calving, upme, uriver, swflx, swflx_vis, patm)
+                         pme, melt, river, runoff, basal, calving, upme, uriver, ubasal, &
+                         swflx, swflx_vis, patm)
 
 
   type(ocean_time_type),          intent(in)    :: Time 
@@ -3307,6 +3308,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real, dimension(isd:,jsd:),     intent(inout) :: runoff
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: basal
+  real, dimension(isd:,jsd:,:),   intent(inout) :: ubasal
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: calving 
   real, dimension(isd:,jsd:),     intent(inout) :: swflx
@@ -3565,6 +3567,9 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do i = isc, iec
            upme(i,j,n)   = Velocity%u(i,j,1,n,tau)   ! velocity of precip-evap water
            uriver(i,j,n) = Velocity%u(i,j,1,n,tau)   ! velocity of river water 
+           !Pedro
+           uriver(i,j,n) = Velocity%u(i,j,1,n,tau)   ! velocity of basal water 
+           !Pedro
         enddo
      enddo
   enddo
@@ -3620,7 +3625,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       enddo
 
       !Pedro
-      basal(:,:) = 0
+      basal(:,:) = 0.0
       !do j=jsc,jec
       !  do i=isc,iec
       !     if ( j < 40 ) then

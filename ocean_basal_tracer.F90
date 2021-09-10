@@ -484,8 +484,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   dtime = Time_steps%dtts
   num_prog_tracers = size(T_prog(:))
   nvars = 3
-  misfzt = 0
-  misfzb = 0
+  misfzt = 0.0
+  misfzb = 0.0
 
   do n=1,num_prog_tracers
     T_prog(n)%wrk1(:,:,:) = 0.0

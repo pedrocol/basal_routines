@@ -565,8 +565,8 @@ end subroutine ocean_advection_velocity_init
 !
 ! </DESCRIPTION>
 !
-subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
-                                     L_system, use_blobs)
+subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river, basal, &
+                                     Adv_vel, L_system, use_blobs)
   
   type(ocean_velocity_type),  intent(in)    :: Velocity
   type(ocean_time_type),      intent(in)    :: Time
@@ -574,6 +574,9 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
   type(ocean_density_type),   intent(in)    :: Dens
   real, dimension(isd:,jsd:), intent(in)    :: pme
   real, dimension(isd:,jsd:), intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   type(ocean_adv_vel_type),   intent(inout) :: Adv_vel
   type(ocean_lagrangian_type),intent(in)    :: L_system
   logical,                    intent(in)    :: use_blobs
@@ -612,7 +615,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
 
       ! dia-surface mass flux through ocean surface arises from water crossing ocean surface. 
       ! minus sign arises from the model sign convention.
-      Adv_vel%wrho_bt(:,:,0) = -(pme(:,:) + river(:,:))
+      Adv_vel%wrho_bt(:,:,0) = -(pme(:,:) + river(:,:) + basal(:,:)) !Pedro
       Adv_vel%wrho_bu(:,:,0) = Grd%umask(:,:,1)*REMAP_BT_TO_BU(Adv_vel%wrho_bt(:,:,0))         
 
       if (use_blobs) then
@@ -662,7 +665,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
 
       ! dia-surface mass flux through ocean surface arises from water crossing ocean surface. 
       ! minus sign arises from the model sign convention.
-      Adv_vel%wrho_bt(:,:,0) = -(pme(:,:) + river(:,:))
+      Adv_vel%wrho_bt(:,:,0) = -(pme(:,:) + river(:,:) + basal(:,:)) !Pedro
       do k=1,nk
         tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k)
         Adv_vel%wrho_bt(:,:,k) = (tmp(:,:) + Adv_vel%diverge_t(:,:,k) + Adv_vel%wrho_bt(:,:,k-1)) &

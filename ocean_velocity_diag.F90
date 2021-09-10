@@ -2189,8 +2189,8 @@ end subroutine vert_dissipation
 ! </DESCRIPTION>
 !
 subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    & 
-                            pme, river, upme, uriver, visc_cbu, visc_cbt,&
-                            visc_cbu_form_drag, Velocity)
+                            pme, river, basal, upme, uriver, ubasal, &
+                            visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_thickness_type),     intent(in)    :: Thickness
@@ -2200,8 +2200,10 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   type(ocean_velocity_type),      intent(inout) :: Velocity
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river 
+  real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme
   real, dimension(isd:,jsd:,:),   intent(in)    :: uriver
+  real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: visc_cbu
   real, dimension(isd:,jsd:,:),   intent(in)    :: visc_cbt
   real, dimension(isd:,jsd:,:,:), intent(in)    :: visc_cbu_form_drag
@@ -2217,6 +2219,7 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   real, dimension(isd:ied,jsd:jed,2) :: ubar
   real, dimension(isd:ied,jsd:jed)   :: pme_u
   real, dimension(isd:ied,jsd:jed)   :: river_u
+  real, dimension(isd:ied,jsd:jed)   :: basal_u !Pedro
 
   real, dimension(13) :: engint         ! internal mode energy integral components (Watt)
   real, dimension(13) :: engext         ! external mode energy integral components (Watt)
@@ -2384,8 +2387,8 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   ! which as dimensions (kg/m^3)*(m^2/s^2) = Pa
   ! eng(3) [=]  kg*m^2/s^3 = Watt
   call vert_advection_of_velocity(Time, Adv_vel, Velocity,  &
-                                  pme, river, upme, uriver, &
-                                  energy_analysis_step=.true.) 
+                                  pme, river, basal, &
+                                  upme, uriver, ubasal, energy_analysis_step=.true.) !Pedro
   do n=1,2
      do k=1,nk
         do j=jsc,jec
@@ -2575,9 +2578,11 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   if(horz_grid == MOM_BGRID) then 
      pme_u(:,:)   = REMAP_BT_TO_BU(pme)
      river_u(:,:) = REMAP_BT_TO_BU(river)
+     basal_u(:,:) = REMAP_BT_TO_BU(basal) !Pedro
   else 
      pme_u(:,:)   = pme(:,:)
      river_u(:,:) = river(:,:)
+     basal_u(:,:) = basal(:,:) !Pedro
   endif 
   k = 1
   do n=1,2
@@ -2587,7 +2592,9 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
            vel        = Velocity%u(i,j,k,n,tau)
            uext       = ubar(i,j,n)
            uint       = vel - uext   
-           term       = pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n)
+           !term       = pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n)
+           term       = pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n) &
+                      + basal_u(i,j)*ubasal(i,j,n) !Pedro
            term       = term*boxarea 
            engint(10) = engint(10) + uint*term
            engext(10) = engext(10) + uext*term
@@ -2604,7 +2611,9 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
            vel        = Velocity%u(i,j,k,n,tau)
            uext       = ubar(i,j,n)
            uint       = vel - uext   
-           term       = pme_u(i,j)*upme(i,j,n)+river_u(i,j)*uriver(i,j,n)
+           !term       = pme_u(i,j)*upme(i,j,n)+river_u(i,j)*uriver(i,j,n)
+           term       = pme_u(i,j)*upme(i,j,n)+river_u(i,j)*uriver(i,j,n) &
+                        +basal_u(i,j)*ubasal(i,j,n) !Pedro
            term       = 0.5*term*boxarea 
            engint(11) = engint(11) + uint*term
            engext(11) = engext(11) + uext*term
