@@ -1041,6 +1041,10 @@ module ocean_types_mod
      real, _ALLOCATABLE, dimension(:,:)     :: tcalving            _NULL ! tracer concentration in calving lang ice
      real, _ALLOCATABLE, dimension(:,:)     :: runoff_tracer_flux  _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
      real, _ALLOCATABLE, dimension(:,:)     :: calving_tracer_flux _NULL ! flux in solid runoff (e.g., kg*psu/(m^2 s) for salt)
+     !Pedro
+     real, _ALLOCATABLE, dimension(:,:)     :: tbasal              _NULL ! tracer concentration in river(=runoff+calving) 
+     real, _ALLOCATABLE, dimension(:,:)     :: basal_tracer_flux  _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
+     !Pedro
      real, _ALLOCATABLE, dimension(:,:)     :: riverdiffuse        _NULL ! where to enhance diff_cbt according to rivers
      real, _ALLOCATABLE, dimension(:,:)     :: flux_int            _NULL ! integrated sfc tracer flux for diagnostics
      real, _ALLOCATABLE, dimension(:,:,:,:) :: sum_blob            _NULL ! tracer content [concentration*kg] from the L system

@@ -379,7 +379,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   type(ocean_thickness_type),   intent(in)       :: Thickness
   type(ocean_density_type),       intent(in)     :: Dens
   type(ocean_prog_tracer_type), intent(inout)    :: T_prog(:)
-  real, dimension(isd:,jsd:),   intent(inout)       :: basal
+  real, dimension(isd:,jsd:),   intent(inout)    :: basal
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
   real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
@@ -389,7 +389,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   misfkt(:,:) = 0
   misfkb(:,:) = 0
-  !basal(:,:) = 0
+  !basal(:,:) = 0.0
 
   param_choice = 1
   cellarea_r = 1.0/(epsln + Grd%tcellsurf)
@@ -461,7 +461,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
   real    :: tracer_input, tbasal
   real    :: maxinsertiondepth,mininsertiondepth
-  real, dimension(:,:), allocatable :: tracer_flux
   logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
   logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
   integer :: stdoutunit,stdlogunit
@@ -476,7 +475,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   allocate ( rhisf_tbl(isd:ied,jsd:jed), r1_hisf_tbl(isd:ied,jsd:jed) )
   allocate ( risf_tsc_b(isd:ied,jsd:jed,2), risf_tsc(isd:ied,jsd:jed,2) ) !1=temp 2=sal
   allocate ( risf_tsc_3d_b(isd:ied,jsd:jed,nk,2), risf_tsc_3d(isd:ied,jsd:jed,nk,2) ) !1=temp 2=sal
-  allocate ( tracer_flux(isd:ied,jsd:jed) )
 
   taum1 = Time%taum1
   tau   = Time%tau
@@ -493,9 +491,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   delta             = 0.0
   delta_rho_tocean  = 0.0
   delta_rho0_triver = 0.0
-  tracer_flux       = 0.0
 
-  import_file = 2
+  import_file = 0
 
   if ( import_file == 2) then
     if ( Basal(1)%id > 0 ) then
@@ -528,6 +525,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
        enddo
     endif
   else
+    misfzt(:,:)=1
+    misfzb(:,:)=40
     fwfisf(:,:) = basal_i(:,:)
   endif
 
@@ -558,6 +557,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
            misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
            misfkb(i,j) = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
+           misfkt(i,j) = 1
+           misfkb(i,j) = 8
 
            ! determine fractional thicknesses of grid cells 
            thkocean = 0.0
@@ -572,8 +573,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
               if ( trim(T_prog(n)%name) == 'temp' ) tbasal = 0
               if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0
 
-              tracer_flux(i,j) = fwfisf(i,j)
-
               zextra=0.0
               do k=misfkb(i,j),misfkt(i,j),-1
                  tracernew(k) = 0.0
@@ -584,14 +583,14 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                      tracerextra = tracernew(k+1)
                  endif
 
-                 zinsert = tracer_flux(i,j)*dtime*delta(k)
+                 zinsert = fwfisf(i,j)*dtime*delta(k)
                  tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
                                  T_prog(n)%triver(i,j)*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
                  zextra=zextra+zinsert
               enddo
 
               k=misfkt(i,j) !Treatment at the first level
-              T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+tracer_flux(i,j)*dtime) -&
+              T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                       T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
 
               do k=misfkt(i,j)+1,misfkb(i,j)
@@ -601,7 +600,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
               if(debug_all_in_top_cell) then
                   k=1
                   T_prog(n)%wrk1(i,j,:) = 0.0
-                  T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*tracer_flux(i,j)*T_prog(n)%triver(i,j)
+                  T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*fwfisf(i,j)*T_prog(n)%triver(i,j)
               endif
 
               do k=misfkt(i,j),misfkb(i,j)
@@ -620,8 +619,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   deallocate ( rhisf_tbl, r1_hisf_tbl )
   deallocate ( risf_tsc_b, risf_tsc )
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
-  deallocate ( tracer_flux )
-
 
 !  if(river_diffuse_temp) then
 !     call river_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1))

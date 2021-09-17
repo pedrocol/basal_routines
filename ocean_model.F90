@@ -1627,12 +1627,13 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, calving, &
             upme, uriver, ubasal, swflx, swflx_vis, patm)
        !Pedro
+
        call mpp_clock_end(id_sbc)
 
        ! compute "flux adjustments" (e.g., surface tracer restoring, flux correction)
        call mpp_clock_begin(id_flux_adjust)
        call flux_adjust(Time, T_diag(1:num_diag_tracers), Dens, Ext_mode, &
-                        T_prog(1:num_prog_tracers), Velocity, river, melt, pme)
+                        T_prog(1:num_prog_tracers), Velocity, river, melt, pme, basal)
        call mpp_clock_end(id_flux_adjust)
 
        ! calculate bottom momentum fluxes and bottom tracer fluxes
@@ -1664,7 +1665,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_vmix)    
        call vert_mix_coeff(Time, Thickness, Velocity, T_prog(1:num_prog_tracers),&
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
-            river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave)
+            river, basal, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave) !Pedro
        call mpp_clock_end(id_vmix)
 
        ! compute ocean tendencies from tracer packages
@@ -1708,16 +1709,18 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_end(id_xlandinsert)
 
        ! add river discharge to T_prog%th_tendency and/or enhance diff_cbt next to river mouths 
-       !Pedro
-       do j=jsc,jec
-         do i=isc,iec
-            if ( j < 40 ) then
-               basal(i,j) = river(i,j)
-               river(i,j) = 0.0
-            endif
-         enddo
-       enddo
-       !Pedro
+      !Pedro
+       !do j=jsc,jec
+       !  do i=isc,iec
+       !     if ( j < 42 ) then
+       !        !basal(i,j) = runoff(i,j)
+       !        runoff(i,j) = 0
+       !        river(i,j) = 0
+       !     endif
+       !  enddo
+       !enddo
+      !Pedro
+
        call mpp_clock_begin(id_rivermix)
        call rivermix (Time, Thickness, Dens, T_prog(1:num_prog_tracers), river, runoff, calving, &
                       diff_cbt, index_temp, index_salt)
@@ -1728,18 +1731,19 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_basal_tracer)
        call basal_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
                                 basal,diff_cbt,index_temp, index_salt)
-!Pedro
-      do j=jsc,jec
-        do i=isc,iec
-           if ( j < 40 ) then
-              river(i,j) = river(i,j) + basal(i,j)
-              basal(i,j) = 0.0
-           endif
-        enddo
-      enddo
-!Pedro
-
        call mpp_clock_end(id_basal_tracer)
+      !Pedro
+       do j=jsc,jec
+         do i=isc,iec
+            if ( j < 42 ) then
+               basal(i,j) = 0
+               runoff(i,j) = basal(i,j)
+               river(i,j) = basal(i,j)
+            endif
+         enddo
+       enddo
+      !Pedro
+
 !Pedro
 
        ! add discharge of dense shelf water into abyss to T_prog%th_tendency

@@ -3568,7 +3568,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
            upme(i,j,n)   = Velocity%u(i,j,1,n,tau)   ! velocity of precip-evap water
            uriver(i,j,n) = Velocity%u(i,j,1,n,tau)   ! velocity of river water 
            !Pedro
-           uriver(i,j,n) = Velocity%u(i,j,1,n,tau)   ! velocity of basal water 
+           ubasal(i,j,n) = Velocity%u(i,j,1,n,tau)   ! velocity of basal water 
            !Pedro
         enddo
      enddo
@@ -3626,15 +3626,15 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       !Pedro
       basal(:,:) = 0.0
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 40 ) then
-      !        basal(i,j) = runoff(i,j)
-      !        runoff(i,j) = 0
-      !     endif
-      !  enddo
-      !enddo
-     !Pedro
+      do j=jsc,jec
+        do i=isc,iec
+           if ( j < 42 ) then
+              basal(i,j) = runoff(i,j)
+              runoff(i,j) = 0
+           endif
+        enddo
+      enddo
+      !Pedro
 
 
       if(use_ideal_runoff) then
@@ -3654,7 +3654,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(runoffspread)  call spread_river_horz(runoff)
       if(calvingspread) call spread_river_horz(calving)
       !Pedro
-      !if(runoffspread)  call spread_river_horz(basal)
+      if(runoffspread)  call spread_river_horz(basal)
       !Pedro
 
       ! river=runoff+calving is the water mass flux 
@@ -3677,20 +3677,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              enddo
           enddo
       endif
-
-      !Pedro
-      !basal(:,:) = 0
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 40 ) then
-      !        basal(i,j) = river(i,j)
-      !        river(i,j) = 0
-      !     endif
-      !  enddo
-      !enddo
-     !Pedro
-
-
 
       ! Set the temperature flux associated with the water 
       ! entering ocean from land. This flux equals to the mass 
@@ -3873,12 +3859,12 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       do j=jsc,jec
          do i=isc,iec
          !Pedro
-         !   if ( j < 40 ) then
-         !      tmp_runoff = max(0.0,basal(i,j))
-         !   else                 
+            if ( j < 42 ) then
+               tmp_runoff = max(0.0,basal(i,j))
+            else                 
                tmp_runoff = max(0.0,runoff(i,j))
-         !   endif
-          !Pedro
+            endif
+         !Pedro
             tmp_calving= max(0.0,calving(i,j))
             T_prog(index_temp)%triver(i,j) = Grd%tmask(i,j,1)    &
                  *(tmp_runoff *T_prog(index_temp)%trunoff(i,j)   &
@@ -3896,11 +3882,11 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do j=jsc,jec
            do i=isc,iec
           !Pedro
-          !  if ( j < 40 ) then
-          !     tmp_runoff = max(0.0,basal(i,j))
-          !  else
+            if ( j < 42 ) then
+               tmp_runoff = max(0.0,basal(i,j))
+            else
                tmp_runoff = max(0.0,runoff(i,j))
-          !  endif
+            endif
           !Pedro
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_redist_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
@@ -3915,11 +3901,11 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do j=jsc,jec
            do i=isc,iec
           !Pedro
-          !  if ( j < 40 ) then
-          !     tmp_runoff = max(0.0,basal(i,j))
-          !  else
+            if ( j < 42 ) then
+               tmp_runoff = max(0.0,basal(i,j))
+            else
                tmp_runoff = max(0.0,runoff(i,j))
-          !  endif
+            endif
           !Pedro
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_added_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
@@ -4005,13 +3991,13 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          do j=jsc,jec
             do i=isc,iec
             !Pedro
-            !if ( j < 40 ) then
-            !   T_prog(n)%riverdiffuse(i,j) = basal(i,j)
-            !else
-            !   T_prog(n)%riverdiffuse(i,j) = river(i,j) 
-            !endif
-            !Pedro
+            if ( j < 42 ) then
+               T_prog(n)%riverdiffuse(i,j) = basal(i,j) + river(i,j)
+            else
                T_prog(n)%riverdiffuse(i,j) = river(i,j) 
+            endif
+            !Pedro
+            !   T_prog(n)%riverdiffuse(i,j) = river(i,j) 
             enddo
          enddo
       enddo
@@ -4060,7 +4046,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(zero_net_water_coupler) then 
          do j=jsc,jec
             do i=isc,iec
-               pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) - wrk1_2d(i,j)
+               pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) - wrk1_2d(i,j) + basal(i,j) !Pedro
             enddo
          enddo
          pme_river_total = mpp_global_sum(Dom%domain2d,pme_river(:,:)*Grd%dat(:,:)*Grd%tmask(:,:,1),&
@@ -4153,7 +4139,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   call mpp_update_domains(pme(:,:)  , Dom%domain2d)
   call mpp_update_domains(river(:,:), Dom%domain2d)
   !Pedro
-  !call mpp_update_domains(basal(:,:), Dom%domain2d)
+  call mpp_update_domains(basal(:,:), Dom%domain2d)
   !Pedro
 
 
@@ -4426,16 +4412,16 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !
 #if defined(ACCESS_CM) && defined(CSIRO_BGC)
   call ocean_tpm_sbc(Dom, Grd, T_prog(:), Time, Ice_ocean_boundary%fluxes, runoff, &
-                     isc_bnd, iec_bnd, jsc_bnd, jec_bnd,aice, Velocity%u10, &
-     use_waterflux, salt_restore_as_salt_flux, atm_co2, co2flux, ocn_co2)
+                     basal, isc_bnd, iec_bnd, jsc_bnd, jec_bnd,aice, Velocity%u10, &
+     use_waterflux, salt_restore_as_salt_flux, atm_co2, co2flux, ocn_co2) !Pedro
 #elif defined(ACCESS_OM) && defined(CSIRO_BGC)
 ! Do not pass co2flux, ocn_co2 or atm_co2
   call ocean_tpm_sbc(Dom, Grd, T_prog(:), Time, Ice_ocean_boundary%fluxes, runoff, &
-                     isc_bnd, iec_bnd, jsc_bnd, jec_bnd,aice=aice, wnd=Velocity%u10, &
-                     use_waterflux=use_waterflux, salt_restore_as_salt_flux=salt_restore_as_salt_flux)
+                     basal, isc_bnd, iec_bnd, jsc_bnd, jec_bnd,aice=aice, wnd=Velocity%u10, &
+                     use_waterflux=use_waterflux, salt_restore_as_salt_flux=salt_restore_as_salt_flux) !Pedro
 #else 
-  call ocean_tpm_sbc(Dom, Grd, T_prog(:), Time, Ice_ocean_boundary%fluxes, runoff, &
-                     isc_bnd, iec_bnd, jsc_bnd, jec_bnd)
+  call ocean_tpm_sbc(Dom, Grd, T_prog(:), Time, Ice_ocean_boundary%fluxes, runoff, basal, &
+                     isc_bnd, iec_bnd, jsc_bnd, jec_bnd) !Pedro
 ! Leave this case blank at the moment. We want to use the bgc with SIS etc.
 #endif
 
@@ -4470,7 +4456,7 @@ end subroutine get_ocean_sbc
 ! </DESCRIPTION>
 !
 
-subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme)
+subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme, basal)
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
 
   use auscom_ice_parameters_mod, only : use_ioaice, aice_cutoff
@@ -4486,6 +4472,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
   real, dimension(isd:,jsd:),     intent(in)    :: river
   real, dimension(isd:,jsd:),     intent(in)    :: melt 
   real, dimension(isd:,jsd:),     intent(inout) :: pme
+  real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: open_ocean_mask
   real, dimension(isd:ied,jsd:jed) :: pme_restore, flx_restore
@@ -4613,9 +4600,9 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
           if(zero_net_water_couple_restore) then 
               do j=jsc,jec
                  do i=isc,iec
-                    pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j)
                     !Pedro
-                    !pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) + basal(i,j)
+                    !pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j)
+                    pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) + basal(i,j)
                     !Pedro
                  enddo
               enddo
