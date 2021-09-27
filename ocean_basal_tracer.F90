@@ -397,7 +397,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
 
   IF ( param_choice == 1 ) THEN
     CALL basal_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), basal, diff_cbt,index_temp, &
-                               index_salt, misfkt,misfkb)
+                               index_salt, misfkt,misfkb, Dens)
   ELSEIF ( param_choice == 3 ) THEN
     !Do nothing for the moment
   ENDIF
@@ -427,19 +427,21 @@ end subroutine basal_tracer_source
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt, misfkt, misfkb)
+subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt, &
+                                 misfkt, misfkb, Dens)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
-  type(ocean_time_type),        intent(in)    :: Time
-  type(ocean_time_steps_type),  intent(in)    :: Time_steps
-  type(ocean_thickness_type),   intent(in)    :: Thickness
-  type(ocean_prog_tracer_type), intent(inout) :: T_prog(:)
-  real, dimension(isd:,jsd:),   intent(inout)    :: basal_i
+  type(ocean_time_type),          intent(in)    :: Time
+  type(ocean_time_steps_type),    intent(in)    :: Time_steps
+  type(ocean_thickness_type),     intent(in)    :: Thickness
+  type(ocean_prog_tracer_type),   intent(inout) :: T_prog(:)
+  real, dimension(isd:,jsd:),     intent(inout)    :: basal_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
   real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
-  integer, dimension(isd:,jsd:),        intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
+  integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
+  type(ocean_density_type),       intent(in)     :: Dens
   real    :: dtime
-  integer :: taum1, tau
+  integer :: taum1, tau, taup1
   integer :: i, j, k, n, nz
   real, allocatable, dimension(:,:)    :: misfzt,misfzb ! Top and bottom input depths
   real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
@@ -478,6 +480,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
   taum1 = Time%taum1
   tau   = Time%tau
+  taup1 = Time%taup1
+
   wrk1  = 0.0 !Asumes T=0 and S=0
   dtime = Time_steps%dtts
   num_prog_tracers = size(T_prog(:))
@@ -548,6 +552,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
         ! the array "river" contains the volume rate (m/s) or mass
         ! rate (kg/m2/sec) of fluid with tracer 
         ! that is to be distributed in the vertical.
+           misfzb(i,j) = 40
            mininsertiondepth = misfzt(i,j)
            depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
            misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
@@ -558,7 +563,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
            misfkb(i,j) = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
            misfkt(i,j) = 1
-           misfkb(i,j) = 8
 
            ! determine fractional thicknesses of grid cells 
            thkocean = 0.0
@@ -570,11 +574,15 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            enddo
 
            do n=1,num_prog_tracers
-              if ( trim(T_prog(n)%name) == 'temp' ) tbasal = 0
-              if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0
 
               zextra=0.0
               do k=misfkb(i,j),misfkt(i,j),-1
+                 if ( trim(T_prog(n)%name) == 'temp' ) call frz_preteos10(tbasal,      &
+                                                       Dens%rho_salinity(i,j,k,taup1), &
+                                                       Dens%pressure_at_depth(i,j,k))
+                 if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0
+                 tbasal = T_prog(n)%triver(i,j)
+
                  tracernew(k) = 0.0
 
                  if (k.eq.misfkb(i,j)) then
@@ -630,6 +638,57 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
 end subroutine basal_tracer_source_1
 ! </SUBROUTINE> NAME="basal_tracer_source_1"
+
+!#######################################################################
+! <SUBROUTINE NAME="frz_preteos10">
+!
+! <DESCRIPTION>
+! To use the accurate freezing point temperature of seawater,
+! which is a nonlinear function of salinity and pressure.
+! air_saturated_water = true
+! </DESCRIPTION>
+!
+subroutine frz_preteos10(tbasal, s, press)
+   real, intent(inout)    :: tbasal
+   real, intent(in)       :: s
+   real, intent(in)       :: press
+   real     :: tf_num, tf_den, tfreeze, sqrts
+   real     :: tfreeze_check
+   ! coefficients in freezing temperature with preTEOS10
+   real :: a0, a1, a2, a3, a4, a5, a6
+   real :: b0, b1, b2, b3
+   real :: c1, c2
+
+
+   ! coefficients in the preTEOS10 freezing point of seawater
+   ! assume prognostic temperature variable is potential temp
+   ! note that TEOS10 coefficients set as parameters above. 
+
+   a0 =  2.5180516744541290e-03
+   a1 = -5.8545863698926184e-02
+   a2 =  2.2979985780124325e-03
+   a3 = -3.0086338218235500e-04
+   a4 = -7.0023530029351803e-04
+   a5 =  8.4149607219833806e-09
+   a6 =  1.1845857563107403e-11
+
+   b0 =  1.0000000000000000e+00
+   b1 = -3.8493266309172074e-05
+   b2 =  9.1686537446749641e-10
+   b3 =  1.3632481944285909e-06
+
+   c1 = -2.5180516744541290e-03
+   c2 =  1.428571428571429e-05
+   tfreeze_check = -2.076426227617581
+   sqrts   = sqrt(s)
+   tf_num  = a0 + s*(a1 + sqrts*(a2 + sqrts*a3)) + press*(a4 + press*(a5 + s*a6))
+   tf_den  = b0 + press*(b1 + press*b2) + s*s*sqrts*b3
+   tfreeze = tf_num/tf_den + (c1 + s*c2)
+   tbasal = tfreeze
+
+end subroutine frz_preteos10
+! </SUBROUTINE> NAME="frz_preteos10"
+
 
 !#######################################################################
 ! <SUBROUTINE NAME="watermass_diag_init_ba">
