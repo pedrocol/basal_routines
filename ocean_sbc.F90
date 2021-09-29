@@ -4255,9 +4255,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !basal(:,:) = 0.0
   !Pedro
 
-  PRINT *, 'precision of river =', precision(river)
-  PRINT *, 'precision of basal =', precision(basal)
-
   !Pedro
   do i=isc,iec
      do j=jsc,jec
