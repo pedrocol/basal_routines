@@ -461,12 +461,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real    :: depth, thkocean
   real    :: delta(nk), delta_rho_tocean(nk), delta_rho0_triver(nk)
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
-  real    :: tracer_input, tbasal
+  real    :: tracer_input, tfreezing
   real    :: maxinsertiondepth,mininsertiondepth
   logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
   logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
   integer :: stdoutunit,stdlogunit
   character(len=128) :: name
+  real    :: sal, press
   stdoutunit=stdout();stdlogunit=stdlog()
 !#######################################################################
 
@@ -488,6 +489,9 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   nvars = 3
   misfzt = 0.0
   misfzb = 0.0
+  sal = 0.0
+  press = 0.0
+  tfreezing = 0.0
 
   do n=1,num_prog_tracers
     T_prog(n)%wrk1(:,:,:) = 0.0
@@ -576,12 +580,17 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            do n=1,num_prog_tracers
 
               zextra=0.0
+
               do k=misfkb(i,j),misfkt(i,j),-1
-                 if ( trim(T_prog(n)%name) == 'temp' ) call frz_preteos10(tbasal,      &
-                                                       Dens%rho_salinity(i,j,k,taup1), &
-                                                       Dens%pressure_at_depth(i,j,k))
-                 if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0
-                 tbasal = T_prog(n)%triver(i,j)
+
+                 !if ( trim(T_prog(n)%name) == 'temp' ) then
+                 !    press = Dens%pressure_at_depth(i,j,k)
+                 !    call frz_preteos10(tfreezing, press)
+                 !    T_prog(n)%tbasal(i,j) = tfreezing
+                 !endif
+                 !if ( trim(T_prog(n)%name) == 'salt' ) T_prog(n)%tbasal(i,j) = 0.0
+
+                 !T_prog(n)%tbasal(i,j) = T_prog(n)%triver(i,j)
 
                  tracernew(k) = 0.0
 
@@ -648,10 +657,10 @@ end subroutine basal_tracer_source_1
 ! air_saturated_water = true
 ! </DESCRIPTION>
 !
-subroutine frz_preteos10(tbasal, s, press)
-   real, intent(inout)    :: tbasal
-   real, intent(in)       :: s
+subroutine frz_preteos10(tfreezing, press)
+   real, intent(inout)    :: tfreezing
    real, intent(in)       :: press
+   real                   :: sal
    real     :: tf_num, tf_den, tfreeze, sqrts
    real     :: tfreeze_check
    ! coefficients in freezing temperature with preTEOS10
@@ -659,6 +668,7 @@ subroutine frz_preteos10(tbasal, s, press)
    real :: b0, b1, b2, b3
    real :: c1, c2
 
+   sal = 0.0
 
    ! coefficients in the preTEOS10 freezing point of seawater
    ! assume prognostic temperature variable is potential temp
@@ -680,11 +690,11 @@ subroutine frz_preteos10(tbasal, s, press)
    c1 = -2.5180516744541290e-03
    c2 =  1.428571428571429e-05
    tfreeze_check = -2.076426227617581
-   sqrts   = sqrt(s)
-   tf_num  = a0 + s*(a1 + sqrts*(a2 + sqrts*a3)) + press*(a4 + press*(a5 + s*a6))
-   tf_den  = b0 + press*(b1 + press*b2) + s*s*sqrts*b3
-   tfreeze = tf_num/tf_den + (c1 + s*c2)
-   tbasal = tfreeze
+   sqrts   = sqrt(sal)
+   tf_num  = a0 + sal*(a1 + sqrts*(a2 + sqrts*a3)) + press*(a4 + press*(a5 + sal*a6))
+   tf_den  = b0 + press*(b1 + press*b2) + sal*sal*sqrts*b3
+   tfreeze = tf_num/tf_den + (c1 + sal*c2)
+   tfreezing = tfreeze
 
 end subroutine frz_preteos10
 ! </SUBROUTINE> NAME="frz_preteos10"

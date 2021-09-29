@@ -2199,8 +2199,10 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   type(ocean_external_mode_type), intent(in)    :: Ext_mode
   type(ocean_velocity_type),      intent(inout) :: Velocity
   real, dimension(isd:,jsd:),     intent(in)    :: pme
-  real, dimension(isd:,jsd:),     intent(in)    :: river 
-  real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
+  !real, dimension(isd:,jsd:),     intent(in)    :: river 
+  !real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
+  real, dimension(isd:,jsd:),     intent(inout)    :: river 
+  real, dimension(isd:,jsd:),     intent(inout)    :: basal !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme
   real, dimension(isd:,jsd:,:),   intent(in)    :: uriver
   real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal !Pedro

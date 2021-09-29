@@ -2336,7 +2336,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Age input via river runoff                          = ',&
                                           tracer_input_runoff*mass_taup1_r,' yr'
          !Pedro
-         write (stdoutunit,'(a,es24.17,a)') ' Age input via river runoff                          = ',&
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                          = ',&
                                           tracer_input_basal*mass_taup1_r,' yr'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Age input via calving land ice                      = ',&

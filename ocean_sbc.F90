@@ -1328,9 +1328,11 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         allocate(T_prog(n)%tpme(isd:ied,jsd:jed))
         allocate(T_prog(n)%triver(isd:ied,jsd:jed))
         allocate(T_prog(n)%trunoff(isd:ied,jsd:jed))
+        allocate(T_prog(n)%tbasal(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%tcalving(isd:ied,jsd:jed))
         allocate(T_prog(n)%runoff_tracer_flux(isd:ied,jsd:jed))
         allocate(T_prog(n)%calving_tracer_flux(isd:ied,jsd:jed))
+        allocate(T_prog(n)%basal_tracer_flux(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%riverdiffuse(isd:ied,jsd:jed))
 #endif
 
@@ -1385,12 +1387,15 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         T_prog(n)%tpme                = 0.0
         T_prog(n)%triver              = 0.0
         T_prog(n)%trunoff             = 0.0
+        T_prog(n)%tbasal              = 0.0
         T_prog(n)%tcalving            = 0.0
         T_prog(n)%runoff_tracer_flux  = 0.0
         T_prog(n)%calving_tracer_flux = 0.0
+        T_prog(n)%basal_tracer_flux   = 0.0
         T_prog(n)%riverdiffuse        = 0.0
         if (n==index_salt) then
            T_prog(n)%trunoff(:,:) = runoff_salinity*Grd%tmask(:,:,1)
+           T_prog(n)%tbasal(:,:) = runoff_salinity*Grd%tmask(:,:,1)
         endif 
 
   enddo ! for do n=1,num_prog_tracers
@@ -3624,19 +3629,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          enddo
       enddo
 
-      !Pedro
-      basal(:,:) = 0.0
-      do j=jsc,jec
-        do i=isc,iec
-           if ( j < 42 ) then
-              basal(i,j) = runoff(i,j)
-              runoff(i,j) = 0
-           endif
-        enddo
-      enddo
-      !Pedro
-
-
       if(use_ideal_runoff) then
           do j=jsc,jec
              do i=isc,iec
@@ -3651,6 +3643,21 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              enddo
           enddo
       endif
+
+      !Pedro
+      !do i=isc,iec
+      !  do j=jsc,jec
+      do i=isc,iec
+        do j=jsc,jec
+           if ( Grd%yt(i,j) < -60 ) then
+              basal(i,j) = runoff(i,j)
+              runoff(i,j) = 0.0
+           endif
+        enddo
+      enddo
+      !Pedro
+
+
       if(runoffspread)  call spread_river_horz(runoff)
       if(calvingspread) call spread_river_horz(calving)
       !Pedro
@@ -3677,6 +3684,33 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              enddo
           enddo
       endif
+
+      !Pedro
+      !Consider halo
+      !do i=isc-1,iec
+      !  do j=jsc-1,jec
+      !     if ( j < 42 ) then
+      !        basal(i,j) = river(i,j) - calving(i,j)
+      !        runoff(i,j) = 0.0
+      !        river(i,j) = calving(i,j) 
+      !     endif
+      !  enddo
+      !enddo
+      !Pedro
+
+
+      !Pedro
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !     if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
 
       ! Set the temperature flux associated with the water 
       ! entering ocean from land. This flux equals to the mass 
@@ -3731,6 +3765,10 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 if(calving(i,j) > epsln) then
                     T_prog(index_temp)%tcalving(i,j)= &
                     min(100.0, max(-273.15,T_prog(index_temp)%calving_tracer_flux(i,j)/calving(i,j)))
+                endif
+                if(basal(i,j) > epsln) then !Pedro
+                    T_prog(index_temp)%tbasal(i,j) = &
+                    min(100.0, max(-273.15,T_prog(index_temp)%basal_tracer_flux(i,j)/basal(i,j)))
                 endif
              enddo
           enddo
@@ -3795,6 +3833,19 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       else 
 
+      !Pedro
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !     if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
+
           ! for cases where the land model does not carry heat flux associated with 
           ! the liquid runoff and solid calving ice. We assign a temperature to the 
           ! liquid and solid runoff.  
@@ -3812,6 +3863,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_temp)%trunoff(i,j)*runoff(i,j)
                 T_prog(index_temp)%calving_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tcalving(i,j)*calving(i,j)
+                T_prog(index_temp)%basal_tracer_flux(i,j)= &
+                   Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
              enddo
           enddo
 
@@ -3827,6 +3880,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_redist_heat)%calving_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%tcalving(i,j)*calving(i,j)
+                 T_prog(index_redist_heat)%basal_tracer_flux(i,j) = &
+                   Grd%tmask(i,j,1)*T_prog(index_redist_heat)%tbasal(i,j)*basal(i,j)
                enddo
             enddo
           endif           
@@ -3843,9 +3898,25 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_added_heat)%calving_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%tcalving(i,j)*calving(i,j)
+                 T_prog(index_added_heat)%basal_tracer_flux(i,j) = &
+                   Grd%tmask(i,j,1)*T_prog(index_added_heat)%tbasal(i,j)*basal(i,j)
                enddo
             enddo
           endif           
+
+      !Pedro
+      !Hasta aca todo bien
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !      if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
 
       endif     ! land_model_heat_fluxes
 
@@ -3859,11 +3930,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       do j=jsc,jec
          do i=isc,iec
          !Pedro
-            if ( j < 42 ) then
-               tmp_runoff = max(0.0,basal(i,j))
-            else                 
-               tmp_runoff = max(0.0,runoff(i,j))
-            endif
+               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
          !Pedro
             tmp_calving= max(0.0,calving(i,j))
             T_prog(index_temp)%triver(i,j) = Grd%tmask(i,j,1)    &
@@ -3882,11 +3949,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do j=jsc,jec
            do i=isc,iec
           !Pedro
-            if ( j < 42 ) then
-               tmp_runoff = max(0.0,basal(i,j))
-            else
-               tmp_runoff = max(0.0,runoff(i,j))
-            endif
+               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
           !Pedro
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_redist_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
@@ -3901,11 +3964,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do j=jsc,jec
            do i=isc,iec
           !Pedro
-            if ( j < 42 ) then
-               tmp_runoff = max(0.0,basal(i,j))
-            else
-               tmp_runoff = max(0.0,runoff(i,j))
-            endif
+               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
           !Pedro
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_added_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
@@ -3983,6 +4042,20 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       endif  ! for debug_water_fluxes
 
+      !Pedro
+      !Hasta aca todo bien 2
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !      if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
+
 
       ! set riverdiffuse to determine where to enhance diff_cbt 
       ! inside ocean_rivermix_mod.  this option is sometimes used
@@ -3991,13 +4064,9 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          do j=jsc,jec
             do i=isc,iec
             !Pedro
-            if ( j < 42 ) then
                T_prog(n)%riverdiffuse(i,j) = basal(i,j) + river(i,j)
-            else
-               T_prog(n)%riverdiffuse(i,j) = river(i,j) 
-            endif
+            !  T_prog(n)%riverdiffuse(i,j) = river(i,j) 
             !Pedro
-            !   T_prog(n)%riverdiffuse(i,j) = river(i,j) 
             enddo
          enddo
       enddo
@@ -4027,6 +4096,22 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          enddo
       enddo
 
+      !Pedro
+      !Hasta aca todo bien 3
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !      if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
+
+
+
       ! produce a zero area average of pme + river. 
       ! note that we remove the ice melt water  
       ! since the coupler has already included the 
@@ -4046,7 +4131,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(zero_net_water_coupler) then 
          do j=jsc,jec
             do i=isc,iec
-               pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) - wrk1_2d(i,j) + basal(i,j) !Pedro
+               pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) - melt(i,j) - wrk1_2d(i,j) !Pedro
             enddo
          enddo
          pme_river_total = mpp_global_sum(Dom%domain2d,pme_river(:,:)*Grd%dat(:,:)*Grd%tmask(:,:,1),&
@@ -4067,6 +4152,20 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             enddo
          enddo
       endif 
+
+      !Pedro
+      !Hasta aca todo bien 4
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !     if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
       
       ! when have a nonzero salinity of runoff, then there is a 
       ! nonzero salt flux (kg/(m^2*sec)) into the ocean with the runoff. 
@@ -4076,6 +4175,13 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             T_prog(index_salt)%trunoff(i,j)*runoff(i,j)*T_prog(index_salt)%conversion 
          enddo
       enddo
+      do j=jsc,jec
+         do i=isc,iec
+            T_prog(index_salt)%basal_tracer_flux(i,j) = &
+            T_prog(index_salt)%tbasal(i,j)*basal(i,j)*T_prog(index_salt)%conversion
+         enddo
+      enddo
+
 
   else     
   ! now enter code block for use_waterflux=.false. 
@@ -4136,11 +4242,80 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
   endif    ! end of long if-block for if(use_waterflux) 
 
+  !Pedro
+  !Hasta aca todo bien 5
+  !do j=jsc,jec
+  !  do i=isc,iec
+  !     if ( j < 42 ) then
+  !        runoff(i,j) = runoff(i,j) + basal(i,j)
+  !        river(i,j) = river(i,j) + basal(i,j)
+  !     endif
+  !  enddo
+  !enddo
+  !basal(:,:) = 0.0
+  !Pedro
+
+  PRINT *, 'precision of river =', precision(river)
+  PRINT *, 'precision of basal =', precision(basal)
+
+  !Pedro
+  do i=isc,iec
+     do j=jsc,jec
+        if ( Grd%yt(i,j) < -60 ) then
+           runoff(i,j) = runoff(i,j) + basal(i,j)
+           river(i,j) = river(i,j) + basal(i,j)
+        endif
+     enddo
+  enddo
+  basal(:,:) = 0.0
+  !Pedro
+
+
+
   call mpp_update_domains(pme(:,:)  , Dom%domain2d)
   call mpp_update_domains(river(:,:), Dom%domain2d)
   !Pedro
   call mpp_update_domains(basal(:,:), Dom%domain2d)
   !Pedro
+
+    !Pedro
+  do i=isc,iec
+     do j=jsc,jec
+        if ( Grd%yt(i,j) < -60 ) then
+           basal(i,j)  = river(i,j)
+           runoff(i,j) = 0.0
+           river(i,j)  = 0.0
+        endif
+     enddo
+  enddo
+  !Pedro
+
+
+  !Pedro
+  !do j=jsc,jec
+  !   do i=isc,iec
+  !      if ( j < 42 ) then
+  !         basal(i,j)  = river(i,j)
+  !         runoff(i,j) = 0.0
+  !         river(i,j)  = 0.0
+  !      endif
+  !   enddo
+  !enddo
+  !Pedro
+
+
+  !Pedro
+  !do j=jsc,jec
+  !  do i=isc,iec
+  !     if ( j < 42 ) then
+  !        runoff(i,j) = runoff(i,j) + basal(i,j)
+  !        river(i,j) = river(i,j) + basal(i,j)
+  !     endif
+  !  enddo
+  !enddo
+  !basal(:,:) = 0.0
+  !Pedro
+
 
 
   !---------------surface pressure from ice and atmos-----------
@@ -4407,6 +4582,20 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   enddo
 #endif
 
+      !Pedro
+      !Hasta aca todo bien 6
+      !do j=jsc,jec
+      !  do i=isc,iec
+      !     if ( j < 42 ) then
+      !        runoff(i,j) = runoff(i,j) + basal(i,j)
+      !        river(i,j) = river(i,j) + basal(i,j)
+      !     endif
+      !  enddo
+      !enddo
+      !basal(:,:) = 0.0
+      !Pedro
+
+
 
   !--------compute surface tracer fluxes from tracer packages------------------- 
   !
@@ -4427,10 +4616,10 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
   !--------send diagnostics------------------- 
   !
-  call ocean_sbc_diag (Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary,        &
-                      pme, runoff, calving, river, alphasfc, betasfc, alphasfc2, betasfc2, &
+  call ocean_sbc_diag (Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary, pme,   &
+                      runoff, calving, river, basal, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip, frozen_precip, evaporation, sensible, longwave, &
-                      latent, swflx, swflx_vis)
+                      latent, swflx, swflx_vis) !Pedro
 
 end subroutine get_ocean_sbc
 ! </SUBROUTINE> NAME="get_ocean_sbc"
@@ -5231,8 +5420,8 @@ end subroutine flux_adjust
 ! Compute and send diagnostics from get_ocean_sbc. 
 ! </DESCRIPTION>
 !
-subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary,     &
-                      pme, runoff, calving, river, alphasfc, betasfc, alphasfc2, betasfc2, &
+subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary, pme,  &
+                      runoff, calving, river, basal, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip,  frozen_precip, evaporation, sensible, longwave,&
                       latent, swflx, swflx_vis)
 
@@ -5246,6 +5435,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
   real, dimension(isd:,jsd:),     intent(in) :: runoff
   real, dimension(isd:,jsd:),     intent(in) :: calving 
   real, dimension(isd:,jsd:),     intent(in) :: river
+  real, dimension(isd:,jsd:),     intent(in) :: basal !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc
   real, dimension(isd:,jsd:),     intent(in) :: betasfc
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc2
@@ -5613,6 +5803,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
             wrk1_2d(i,j) =   T_prog(index_temp)%conversion*(                                              &
                    T_prog(index_temp)%stf(i,j)                                                            &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                             &
+                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                             &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                            &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j)                                &
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
@@ -5635,6 +5826,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
                    T_prog(index_temp)%conversion*(                                                        &
                    T_prog(index_temp)%stf(i,j)                                                            &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                             &
+                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                             &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                            &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j)                               &
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
@@ -5655,6 +5847,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
          do i=isc,iec
             wrk1_2d(i,j) = T_prog(index_temp)%conversion*(                                               &
                    T_prog(index_temp)%stf(i,j)                                                           &
+                 + T_prog(index_temp)%runoff_tracer_flux(i,j)                                            &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                            &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                           &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j)                               &

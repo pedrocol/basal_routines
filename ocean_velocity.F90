@@ -922,9 +922,11 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
   type(ocean_lagrangian_type),    intent(inout) :: L_system
   real, dimension(isd:,jsd:,:),   intent(in)    :: rho
   real, dimension(isd:,jsd:),     intent(in)    :: pme
-  real, dimension(isd:,jsd:),     intent(in)    :: river
+  !real, dimension(isd:,jsd:),     intent(in)    :: river
+  real, dimension(isd:,jsd:),     intent(inout)    :: river
   !Pedro
-  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !real, dimension(isd:,jsd:),     intent(in)    :: basal
+  real, dimension(isd:,jsd:),     intent(inout)    :: basal
   real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal 
   !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme

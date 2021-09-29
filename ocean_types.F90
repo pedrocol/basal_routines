@@ -80,6 +80,7 @@ module ocean_types_mod
      character(len=72)  :: bryan_lewis_mix
      character(len=72)  :: hwf_mix
      character(len=72)  :: tanh_diff_cbt
+     character(len=72)  :: read_diff_cbt
      character(len=72)  :: j09_diff_cbt
      character(len=72)  :: horz_bih_tracer
      character(len=72)  :: horz_lap_tracer
@@ -1043,7 +1044,7 @@ module ocean_types_mod
      real, _ALLOCATABLE, dimension(:,:)     :: calving_tracer_flux _NULL ! flux in solid runoff (e.g., kg*psu/(m^2 s) for salt)
      !Pedro
      real, _ALLOCATABLE, dimension(:,:)     :: tbasal              _NULL ! tracer concentration in river(=runoff+calving) 
-     real, _ALLOCATABLE, dimension(:,:)     :: basal_tracer_flux  _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
+     real, _ALLOCATABLE, dimension(:,:)     :: basal_tracer_flux   _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
      !Pedro
      real, _ALLOCATABLE, dimension(:,:)     :: riverdiffuse        _NULL ! where to enhance diff_cbt according to rivers
      real, _ALLOCATABLE, dimension(:,:)     :: flux_int            _NULL ! integrated sfc tracer flux for diagnostics

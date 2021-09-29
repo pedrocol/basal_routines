@@ -628,8 +628,10 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel
   type(ocean_velocity_type),    intent(inout) :: Velocity
   real, dimension(isd:,jsd:),   intent(in)    :: pme
-  real, dimension(isd:,jsd:),   intent(in)    :: river
-  real, dimension(isd:,jsd:),   intent(in)    :: basal !Pedro
+  !real, dimension(isd:,jsd:),   intent(in)    :: river
+  real, dimension(isd:,jsd:),   intent(inout)    :: river
+  !real, dimension(isd:,jsd:),   intent(in)    :: basal !Pedro
+  real, dimension(isd:,jsd:),   intent(inout)    :: basal !Pedro
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
   real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
@@ -652,6 +654,17 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
       return 
   endif
 
+  !Pedro
+  do i=isc,iec
+     do j=jsc,jec
+        if ( Grd%yt(i,j) < -60 ) then
+           river(i,j) = river(i,j) + basal(i,j)
+        endif
+     enddo
+  enddo
+  basal(:,:) = 0.0
+  !Pedro
+
   ! fresh water on U-cell
   pme_u    = 0.0
   river_u  = 0.0
@@ -669,7 +682,20 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
     call vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_u,   &
                                upme, uriver, ubasal, energy_analysis_step) !Pedro
   endif 
-  
+
+      !Pedro
+  do i=isc,iec
+     do j=jsc,jec
+        if ( Grd%yt(i,j) < -60 ) then
+           basal(i,j) = river(i,j)
+           basal_u(i,j) = river_u(i,j)
+           river(i,j) = 0.0
+           river_u(i,j) = 0.0
+        endif
+     enddo
+  enddo
+  !Pedro
+
 
   ! diagnostics
   surf_accel = 0.0
@@ -683,6 +709,17 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
          enddo
       enddo
   endif
+
+    !Pedro
+  !do i=isc,iec
+  !   do j=jsc,jec
+  !      if ( Grd%yt(i,j) < -60 ) then
+  !         basal(i,j) = river(i,j)
+  !         river(i,j) = 0.0
+  !      endif
+  !   enddo
+  !enddo
+  !Pedro
 
   call diagnose_2d_u(Time, Grd, id_surf_accel(1), surf_accel(:,:,1))
   call diagnose_2d_u(Time, Grd, id_surf_accel(2), surf_accel(:,:,2))
@@ -816,7 +853,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            !           -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) 
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i,j+1))  *(upme(i,j,n)  +upme(i-1,j,n)  ) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) & 
-                      -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+basal(i,j+1))*(ubasal(i,j,n)+ubasal(i-1,j,n)) 
+                      -onefourth*Grd%tmasken(i,j,1,n)*(basal(i,j)+basal(i,j+1))*(ubasal(i,j,n)+ubasal(i-1,j,n)) 
            !Pedro
            ft2(i,j) = 0.0
         enddo
