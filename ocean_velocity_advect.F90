@@ -655,14 +655,14 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   endif
 
   !Pedro
-  do i=isc,iec
-     do j=jsc,jec
-        if ( Grd%yt(i,j) < -60 ) then
-           river(i,j) = river(i,j) + basal(i,j)
-        endif
-     enddo
-  enddo
-  basal(:,:) = 0.0
+  !do i=isc,iec
+  !   do j=jsc,jec
+  !      if ( Grd%yt(i,j) < -60 ) then
+  !         river(i,j) = river(i,j) + basal(i,j)
+  !      endif
+  !   enddo
+  !enddo
+  !basal(:,:) = 0.0
   !Pedro
 
   ! fresh water on U-cell
@@ -684,16 +684,16 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   endif 
 
       !Pedro
-  do i=isc,iec
-     do j=jsc,jec
-        if ( Grd%yt(i,j) < -60 ) then
-           basal(i,j) = river(i,j)
-           basal_u(i,j) = river_u(i,j)
-           river(i,j) = 0.0
-           river_u(i,j) = 0.0
-        endif
-     enddo
-  enddo
+  !do i=isc,iec
+  !   do j=jsc,jec
+  !      if ( Grd%yt(i,j) < -60 ) then
+  !         basal(i,j) = river(i,j)
+  !         basal_u(i,j) = river_u(i,j)
+  !         river(i,j) = 0.0
+  !         river_u(i,j) = 0.0
+  !      endif
+  !   enddo
+  !enddo
   !Pedro
 
 

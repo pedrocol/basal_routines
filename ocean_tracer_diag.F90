@@ -880,6 +880,7 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
   real, dimension(isd:,jsd:),     intent(in)    :: calving 
   !Pedro
   real, dimension(isd:,jsd:),     intent(in)    :: basal
+  integer         :: i, j
   !Pedro
 
 
@@ -1001,6 +1002,7 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
              call tracer_min_max(Time, Thickness, T_prog(n))
              call tracer_integrals(Time, Thickness, T_prog(n))
           enddo
+
           call tracer_change(Time, Thickness, T_prog, T_diag, Ext_mode, &
                              pme, melt, runoff, calving, basal) !Pedro
           call tracer_land_cell_check (Time, T_prog)
@@ -2130,7 +2132,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
      do j=jsc,jec
         do i=isc,iec
            if(basal(i,j) > 0) then
-               tmp(i,j) = area_t(i,j)*conversion*dtime*basal(i,j)*T_prog(n)%trunoff(i,j)
+               tmp(i,j) = area_t(i,j)*conversion*dtime*basal(i,j)*T_prog(n)%tbasal(i,j)
+               !PRINT *, "diag", basal(i,j),T_prog(n)%tbasal(i,j), i, j, n
            endif
         enddo
      enddo

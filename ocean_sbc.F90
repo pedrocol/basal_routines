@@ -3645,12 +3645,12 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       endif
 
       !Pedro
-      !do i=isc,iec
-      !  do j=jsc,jec
       do i=isc,iec
         do j=jsc,jec
-           if ( Grd%yt(i,j) < -60 ) then
+           !if ( Grd%yt(i,j) < -60.0 ) then
+           if ( j < 42 ) then
               basal(i,j) = runoff(i,j)
+              !basal(i,j) = 0.0
               runoff(i,j) = 0.0
            endif
         enddo
@@ -3757,6 +3757,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              do i=isc,iec
                 T_prog(index_temp)%trunoff(i,j)  = 0.0
                 T_prog(index_temp)%tcalving(i,j) = 0.0
+                T_prog(index_temp)%tbasal(i,j) = 0.0
 
                 if(runoff(i,j) > epsln) then
                     T_prog(index_temp)%trunoff(i,j) = &
@@ -3927,6 +3928,18 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       ! the oceans to address limitations in their formulation. 
       ! We do not include such negative points when computing triver. 
       ! Also compute the salinity flux associated with liquid and solid runoff. 
+
+      !Pedro
+      !do i=isc,iec
+      !  do j=jsc,jec
+      !     if ( j < 42 ) then
+      !        T_prog(index_temp)%trunoff(i,j) = -2.0
+      !     endif
+      !  enddo
+      !enddo
+      !Pedro
+
+
       do j=jsc,jec
          do i=isc,iec
          !Pedro
@@ -4256,15 +4269,15 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !Pedro
 
   !Pedro
-  do i=isc,iec
-     do j=jsc,jec
-        if ( Grd%yt(i,j) < -60 ) then
-           runoff(i,j) = runoff(i,j) + basal(i,j)
-           river(i,j) = river(i,j) + basal(i,j)
-        endif
-     enddo
-  enddo
-  basal(:,:) = 0.0
+  !do i=isc,iec
+  !   do j=jsc,jec
+  !      if ( Grd%yt(i,j) < -60 ) then
+  !         runoff(i,j) = runoff(i,j) + basal(i,j)
+  !         river(i,j) = river(i,j) + basal(i,j)
+  !      endif
+  !   enddo
+  !enddo
+  !basal(:,:) = 0.0
   !Pedro
 
 
@@ -4276,15 +4289,15 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !Pedro
 
     !Pedro
-  do i=isc,iec
-     do j=jsc,jec
-        if ( Grd%yt(i,j) < -60 ) then
-           basal(i,j)  = river(i,j)
-           runoff(i,j) = 0.0
-           river(i,j)  = 0.0
-        endif
-     enddo
-  enddo
+  !do i=isc,iec
+  !   do j=jsc,jec
+  !      if ( Grd%yt(i,j) < -60 ) then
+  !         basal(i,j)  = river(i,j)
+  !         runoff(i,j) = 0.0
+  !         river(i,j)  = 0.0
+  !      endif
+  !   enddo
+  !enddo
   !Pedro
 
 
@@ -4788,7 +4801,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
                  do i=isc,iec
                     !Pedro
                     !pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j)
-                    pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j) + basal(i,j)
+                    pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) - melt(i,j)
                     !Pedro
                  enddo
               enddo

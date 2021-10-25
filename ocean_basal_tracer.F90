@@ -455,13 +455,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
   real, allocatable, dimension(:,:,:) :: zt_frz3d        ! Freezing point temperature
   real, allocatable, dimension(:,:,:,:) :: risf_tsc_3d_b , risf_tsc_3d ! before and now T & S isf contents [K.m/s & PSU.m/s]
-  integer ::   ikt, ikb, import_file     ! local integers
+  integer ::   ikt, ikb, import_file, method, firstlev     ! local integers
   integer :: nvars
   !rivermix
   real    :: depth, thkocean
   real    :: delta(nk), delta_rho_tocean(nk), delta_rho0_triver(nk)
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
-  real    :: tracer_input, tfreezing
+  real    :: tracer_input, tfreezing, tbasal, tbasal_sum
   real    :: maxinsertiondepth,mininsertiondepth
   logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
   logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
@@ -492,6 +492,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   sal = 0.0
   press = 0.0
   tfreezing = 0.0
+  tbasal = 0.0
+  tbasal_sum = 0.0
 
   do n=1,num_prog_tracers
     T_prog(n)%wrk1(:,:,:) = 0.0
@@ -500,7 +502,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   delta_rho_tocean  = 0.0
   delta_rho0_triver = 0.0
 
-  import_file = 0
+  import_file = 2
 
   if ( import_file == 2) then
     if ( Basal(1)%id > 0 ) then
@@ -556,7 +558,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
         ! the array "river" contains the volume rate (m/s) or mass
         ! rate (kg/m2/sec) of fluid with tracer 
         ! that is to be distributed in the vertical.
-           misfzb(i,j) = 40
            mininsertiondepth = misfzt(i,j)
            depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
            misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
@@ -566,7 +567,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
            misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
            misfkb(i,j) = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
-           misfkt(i,j) = 1
 
            ! determine fractional thicknesses of grid cells 
            thkocean = 0.0
@@ -581,36 +581,58 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
               zextra=0.0
 
-              do k=misfkb(i,j),misfkt(i,j),-1
+              tbasal_sum = 0.0
 
-                 !if ( trim(T_prog(n)%name) == 'temp' ) then
-                 !    press = Dens%pressure_at_depth(i,j,k)
-                 !    call frz_preteos10(tfreezing, press)
-                 !    T_prog(n)%tbasal(i,j) = tfreezing
-                 !endif
-                 !if ( trim(T_prog(n)%name) == 'salt' ) T_prog(n)%tbasal(i,j) = 0.0
+              if ( trim(T_prog(n)%name) == 'temp' ) then
+                 sal = T_prog(index_salt)%field(i,j,k,tau)
+                 !sal = 0.0
+                 press = Dens%pressure_at_depth(i,j,k)
+                 call frz_preteos10(tfreezing, press, sal)
+                 tbasal = tfreezing
+              endif
+              if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
+              !tbasal = T_prog(n)%triver(i,j)
 
-                 !T_prog(n)%tbasal(i,j) = T_prog(n)%triver(i,j)
+              method = 1
 
-                 tracernew(k) = 0.0
+              if ( method == 0 ) then
 
-                 if (k.eq.misfkb(i,j)) then
-                     tracerextra=0.0
-                 else
-                     tracerextra = tracernew(k+1)
-                 endif
+                 do k=misfkb(i,j),misfkt(i,j),-1
 
-                 zinsert = fwfisf(i,j)*dtime*delta(k)
-                 tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
-                                 T_prog(n)%triver(i,j)*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                 zextra=zextra+zinsert
-              enddo
+                    tracernew(k) = 0.0
 
-              k=misfkt(i,j) !Treatment at the first level
-              T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
-                                      T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+                    if (k.eq.misfkb(i,j)) then
+                       tracerextra=0.0
+                    else
+                       tracerextra = tracernew(k+1)
+                    endif
 
-              do k=misfkt(i,j)+1,misfkb(i,j)
+                    zinsert = fwfisf(i,j)*dtime*delta(k)
+                    tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
+                                   tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    zextra=zextra+zinsert
+
+                    tbasal_sum = tbasal_sum + tbasal
+                 enddo
+
+                 k=misfkt(i,j) !Treatment at the first level
+                 T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
+                                         T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+
+                 firstlev = misfkt(i,j)+1
+              elseif ( method == 1 ) then
+                 do k=misfkt(i,j),misfkb(i,j)
+                    zinsert = fwfisf(i,j)*dtime*delta(k)
+                    tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
+                                   (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    tbasal_sum = tbasal_sum + tbasal
+                 enddo
+                 firstlev = misfkt(i,j)                 
+              endif !method
+              
+              T_prog(n)%tbasal(i,j) = tbasal_sum / ( misfkb(i,j) - misfkt(i,j) + 1) !average for ocean_diagnostics
+
+              do k=firstlev,misfkb(i,j)
                  T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 
               enddo
 
@@ -657,18 +679,16 @@ end subroutine basal_tracer_source_1
 ! air_saturated_water = true
 ! </DESCRIPTION>
 !
-subroutine frz_preteos10(tfreezing, press)
+subroutine frz_preteos10(tfreezing, press, sal)
    real, intent(inout)    :: tfreezing
    real, intent(in)       :: press
-   real                   :: sal
+   real, intent(in)       :: sal
    real     :: tf_num, tf_den, tfreeze, sqrts
    real     :: tfreeze_check
    ! coefficients in freezing temperature with preTEOS10
    real :: a0, a1, a2, a3, a4, a5, a6
    real :: b0, b1, b2, b3
    real :: c1, c2
-
-   sal = 0.0
 
    ! coefficients in the preTEOS10 freezing point of seawater
    ! assume prognostic temperature variable is potential temp
