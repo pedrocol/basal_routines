@@ -3297,7 +3297,7 @@ end subroutine ocean_sfc_end
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
                          pme, melt, river, runoff, basal, calving, upme, uriver, ubasal, &
-                         swflx, swflx_vis, patm)
+                         swflx, swflx_vis, patm, ubasal3d)
 
 
   type(ocean_time_type),          intent(in)    :: Time 
@@ -3314,6 +3314,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: basal
   real, dimension(isd:,jsd:,:),   intent(inout) :: ubasal
+  real, dimension(isd:,jsd:,:,:),   intent(inout) :: ubasal3d
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: calving 
   real, dimension(isd:,jsd:),     intent(inout) :: swflx
@@ -3578,6 +3579,18 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         enddo
      enddo
   enddo
+
+  !Pedro
+  do n = 1, size(upme,3)
+     do j = jsc, jec
+        do i = isc, iec
+           do k=1,nk
+              ubasal3d(i,j,k,n) = Velocity%u(i,j,k,n,tau)   ! velocity of basal water
+           enddo
+        enddo
+     enddo
+  enddo
+  !Pedro
 
   ! start of long if-block for use_waterflux true or false. 
   if (use_waterflux) then

@@ -654,18 +654,6 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
       return 
   endif
 
-  !Pedro
-  !do i=isc,iec
-  !   do j=jsc,jec
-  !      if ( Grd%yt(i,j) < -60 ) then
-  !         river(i,j) = river(i,j) + basal(i,j)
-  !      endif
-  !   enddo
-  !enddo
-  !basal(:,:) = 0.0
-  !Pedro
-
-  ! fresh water on U-cell
   pme_u    = 0.0
   river_u  = 0.0
   pme_u    = REMAP_BT_TO_BU(pme(:,:))
@@ -683,20 +671,6 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
                                upme, uriver, ubasal, energy_analysis_step) !Pedro
   endif 
 
-      !Pedro
-  !do i=isc,iec
-  !   do j=jsc,jec
-  !      if ( Grd%yt(i,j) < -60 ) then
-  !         basal(i,j) = river(i,j)
-  !         basal_u(i,j) = river_u(i,j)
-  !         river(i,j) = 0.0
-  !         river_u(i,j) = 0.0
-  !      endif
-  !   enddo
-  !enddo
-  !Pedro
-
-
   ! diagnostics
   surf_accel = 0.0
   if(id_surf_accel(1) > 0 .or. id_surf_accel(2) > 0) then   
@@ -709,17 +683,6 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
          enddo
       enddo
   endif
-
-    !Pedro
-  !do i=isc,iec
-  !   do j=jsc,jec
-  !      if ( Grd%yt(i,j) < -60 ) then
-  !         basal(i,j) = river(i,j)
-  !         river(i,j) = 0.0
-  !      endif
-  !   enddo
-  !enddo
-  !Pedro
 
   call diagnose_2d_u(Time, Grd, id_surf_accel(1), surf_accel(:,:,1))
   call diagnose_2d_u(Time, Grd, id_surf_accel(2), surf_accel(:,:,2))

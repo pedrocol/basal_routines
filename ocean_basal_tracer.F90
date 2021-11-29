@@ -372,17 +372,19 @@ end subroutine ocean_basal_tracer_init
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal, diff_cbt,index_temp, index_salt)
+subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal, diff_cbt, index_temp, &
+                               index_salt, basal3d)
 
-  type(ocean_time_type),        intent(in)       :: Time
-  type(ocean_time_steps_type),  intent(in)       :: Time_steps
-  type(ocean_thickness_type),   intent(in)       :: Thickness
-  type(ocean_density_type),       intent(in)     :: Dens
-  type(ocean_prog_tracer_type), intent(inout)    :: T_prog(:)
-  real, dimension(isd:,jsd:),   intent(inout)    :: basal
-  integer,                        intent(in)     :: index_temp
-  integer,                        intent(in)     :: index_salt
-  real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
+  type(ocean_time_type),          intent(in)      :: Time
+  type(ocean_time_steps_type),    intent(in)      :: Time_steps
+  type(ocean_thickness_type),     intent(in)      :: Thickness
+  type(ocean_density_type),       intent(in)      :: Dens
+  type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
+  real, dimension(isd:,jsd:),     intent(inout)   :: basal
+  real, dimension(isd:,jsd:,:,:), intent(inout)   :: diff_cbt
+  real, dimension(isd:,jsd:,:)  , intent(inout)   :: basal3d
+  integer,                        intent(in)      :: index_temp
+  integer,                        intent(in)      :: index_salt
   integer :: param_choice,n
   integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
 
@@ -396,8 +398,8 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   num_prog_tracers = size(T_prog(:))
 
   IF ( param_choice == 1 ) THEN
-    CALL basal_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), basal, diff_cbt,index_temp, &
-                               index_salt, misfkt,misfkb, Dens)
+    CALL basal_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), basal, diff_cbt, index_temp, &
+                               index_salt, misfkt, misfkb, Dens, basal3d)
   ELSEIF ( param_choice == 3 ) THEN
     !Do nothing for the moment
   ENDIF
@@ -428,7 +430,7 @@ end subroutine basal_tracer_source
 ! </DESCRIPTION>
 !
 subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt, &
-                                 misfkt, misfkb, Dens)
+                                 misfkt, misfkb, Dens, basal3d)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_time_steps_type),    intent(in)    :: Time_steps
@@ -440,6 +442,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
   integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
   type(ocean_density_type),       intent(in)     :: Dens
+  real, dimension(isd:,jsd:,:),   intent(inout)  :: basal3d
   real    :: dtime
   integer :: taum1, tau, taup1
   integer :: i, j, k, n, nz
@@ -610,6 +613,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     zinsert = fwfisf(i,j)*dtime*delta(k)
                     tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
                                    tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    basal3d(i,j,k) = ( zextra + zinsert ) / ( dtime*delta(k) ) !Equivalente basal flux
                     zextra=zextra+zinsert
 
                     tbasal_sum = tbasal_sum + tbasal
@@ -622,6 +626,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  firstlev = misfkt(i,j)+1
               elseif ( method == 1 ) then
                  do k=misfkt(i,j),misfkb(i,j)
+                    basal3d(i,j,k) = fwfisf(i,j)*delta(k)
                     zinsert = fwfisf(i,j)*dtime*delta(k)
                     tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                    (Thickness%rho_dzt(i,j,k,tau)+zinsert)
