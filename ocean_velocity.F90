@@ -912,7 +912,8 @@ end subroutine ocean_velocity_init
 ! </DESCRIPTION>
 !
 subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
-                                  L_system, rho, pme, river, basal, upme, uriver, ubasal)
+                                  L_system, rho, pme, river, basal, upme, uriver, ubasal, &
+                                  basal3d, ubasal3d)
 
   type(ocean_velocity_type),      intent(inout) :: Velocity
   type(ocean_time_type),          intent(in)    :: Time
@@ -927,7 +928,9 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
   !Pedro
   !real, dimension(isd:,jsd:),     intent(in)    :: basal
   real, dimension(isd:,jsd:),     intent(inout)    :: basal
-  real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal 
+  real, dimension(isd:,jsd:,:),   intent(in)       :: ubasal
+  real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
+  real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
   !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme
   real, dimension(isd:,jsd:,:),   intent(in)    :: uriver 
@@ -967,7 +970,8 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
       ! fill Velocity%advection(tau_m0) 
       call horz_advection_of_velocity(Time, Thickness, Adv_vel, Velocity, energy_analysis_step=.false.)       
       call vert_advection_of_velocity(Time, Adv_vel, Velocity, &
-                                      pme, river, basal, upme, uriver, ubasal, energy_analysis_step=.false.) !Pedro
+                                      pme, river, basal, upme, uriver, ubasal, &
+                                      basal3d, ubasal3d, energy_analysis_step=.false.) !Pedro
 
       do n=1,2
          do k=1,nk

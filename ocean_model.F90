@@ -1636,21 +1636,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, calving, &
             upme, uriver, ubasal, swflx, swflx_vis, patm, ubasal3d)
        !Pedro
-
        call mpp_clock_end(id_sbc)
-
-      !Pedro
-      !Hasta aca todo bien 7
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
 
        ! compute "flux adjustments" (e.g., surface tracer restoring, flux correction)
        call mpp_clock_begin(id_flux_adjust)
@@ -1689,20 +1675,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
             river, basal, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave) !Pedro
        call mpp_clock_end(id_vmix)
-
-      !Pedro
-      !Hasta aca todo bien 8
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
 
        ! compute ocean tendencies from tracer packages
        call mpp_clock_begin(id_otpm_source)
@@ -1744,21 +1716,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call xlandinsert (Time, Ext_mode, Dens, Thickness, T_prog(1:num_prog_tracers))
        call mpp_clock_end(id_xlandinsert)
 
-
-      !Pedro
-      !Hasta aca todo bien 9
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
        ! add river discharge to T_prog%th_tendency and/or enhance diff_cbt next to river mouths 
        call mpp_clock_begin(id_rivermix)
        call rivermix (Time, Thickness, Dens, T_prog(1:num_prog_tracers), river, runoff, calving, &
@@ -1772,20 +1729,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
                                 basal, diff_cbt, index_temp, index_salt, basal3d)
        call mpp_clock_end(id_basal_tracer)
 !Pedro
-
-      !Pedro
-      !Hasta aca todo bien 10
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
 
        ! add discharge of dense shelf water into abyss to T_prog%th_tendency
        call mpp_clock_begin(id_overflow)
@@ -1855,20 +1798,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !Pedro
        call mpp_clock_end(id_eta_and_pbot_tendency)
 
-      !Pedro
-      !Hasta aca todo bien 11
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-       
        ! the embedded Lagrangian model requires a different order of operations
        if (use_blobs) then
 
@@ -1903,20 +1832,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !Pedro
           call mpp_clock_end(id_advect)
 
-      !Pedro
-      !Hasta aca todo bien 12
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
           call mpp_clock_begin(id_tcell_thickness)
             ! Update the total thickness
             call mpp_clock_begin(id_tcell_thickness_blob)
@@ -1949,24 +1864,10 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
           !                              Lagrangian_system, use_blobs)
           call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                        Adv_vel, Lagrangian_system, use_blobs)
+                                        Adv_vel, Lagrangian_system, use_blobs, basal3d)
           !Pedro
           call mpp_clock_end(id_advect)
 
-      !Pedro
-      !Hasta aca todo bien 12
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-          
           ! update ocean free surface height or bottom pressure using "big time step"
           call mpp_clock_begin(id_eta_and_pbot_update)
           call eta_and_pbot_update(Time, Ext_mode)
@@ -1990,20 +1891,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !Pedro
           call mpp_clock_end(id_advect_gotm) 
        endif
-
-      !Pedro
-      !Hasta aca todo bien 13
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
 
        ! add tendency from sigma transport to Tracer%th_tendency
        call mpp_clock_begin(id_sigma)
@@ -2056,20 +1943,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !Pedro
        call mpp_clock_end(id_eta_and_pbot_diagnose)
 
-      !Pedro
-      !Hasta aca todo bien 14
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
        ! diagnose the geodepth of new blobs and the depth of old blobs
        call mpp_clock_begin(id_blob_diagnose_depth)
        call ocean_blob_diagnose_depth(Time, T_prog(:), Ext_mode, Lagrangian_system)
@@ -2108,20 +1981,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
        ! add time explicit contributions to Velocity%accel.  
        ! compute just those pieces needed to force barotropic dynamics 
-
-      !Pedro
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
        Velocity%rossby_radius(:,:) = Grid%umask(:,:,1)*rossby_radius(:,:)
        call mpp_clock_begin(id_explicit_accel_a)
        if(tendency == TWO_LEVEL) then
@@ -2130,7 +1989,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !     Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, upme, uriver)
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
                Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, basal, &
-               upme, uriver, ubasal)
+               upme, uriver, ubasal, basal3d, ubasal3d)
           !Pedro
        elseif(tendency == THREE_LEVEL) then 
           !Pedro
@@ -2138,37 +1997,10 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !     Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, upme, uriver)
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
                Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, basal, & 
-               upme, uriver, ubasal)
+               upme, uriver, ubasal, basal3d, ubasal3d)
           !Pedro
        endif
        call mpp_clock_end(id_explicit_accel_a)
-
-      !Pedro
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        basal(i,j) = runoff(i,j)
-      !        runoff(i,j) = 0.0
-      !        river(i,j) = river(i,j) - basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !Pedro
-
-
-      !Pedro
-      !Aca esta la cosa
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
 
     ! vertical integral of forcing used for barotropic dynamics 
     call mpp_clock_begin(id_barotropic_forcing)
@@ -2235,7 +2067,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     ! compute energy analysis diagnostic
     !Pedro 
     call energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens, pme, river, basal, &
-                          upme, uriver, ubasal, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity)
+                          upme, uriver, ubasal, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity, &
+                          basal3d, ubasal3d)
     !Pedro
     ! perform some numerical diagnostics (e.g., tracer and mass conservation, CFL checks, etc.)
     call mpp_clock_begin(id_diagnostics)
