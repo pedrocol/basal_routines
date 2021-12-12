@@ -1828,7 +1828,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
           !                              Lagrangian_system, use_blobs)
           call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                        Adv_vel, Lagrangian_system, use_blobs)
+                                        Adv_vel, Lagrangian_system, basal3d, use_blobs)
           !Pedro
           call mpp_clock_end(id_advect)
 
@@ -1864,7 +1864,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
           !                              Lagrangian_system, use_blobs)
           call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                        Adv_vel, Lagrangian_system, use_blobs, basal3d)
+                                        Adv_vel, Lagrangian_system, basal3d, use_blobs)
           !Pedro
           call mpp_clock_end(id_advect)
 

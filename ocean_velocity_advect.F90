@@ -784,7 +784,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            do j=jsc,jec
               do i=isc,iec
                  ft2(i,j) = Adv_vel%wrho_bu(i,j,k)*0.5*(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) &
-                            + basal3d_u(i,j,k)*ubasal3d(i,j,n,k)
+                            + basal3d_u(i,j,k)*ubasal3d(i,j,k,n)
                  wrk1_v(i,j,k,n) = Grd%umask(i,j,k)*(ft1(i,j)-ft2(i,j))
                  ft1(i,j) = ft2(i,j)
               enddo
@@ -821,7 +821,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
               ft2(i,j) = onefourth*(Adv_vel%wrho_bt(i,j,k)+Adv_vel%wrho_bt(i+1,j,k)) &
                                   *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) &
                          +onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,k)+basal3d(i+1,j,k))&
-                                  *(ubasal3d(i,j,n,k)+ubasal3d(i,j-1,n,k))
+                                  *(ubasal3d(i,j,k,n)+ubasal3d(i,j-1,k,n))
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
@@ -851,7 +851,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
               ft2(i,j) = onefourth*(Adv_vel%wrho_bt(i,j,k)+Adv_vel%wrho_bt(i,j+1,k)) &
                                   *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) &
                          + onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,k)+basal3d(i,j+1,k)) &
-                                  *(ubasal3d(i,j,n,k)+ubasal3d(i-1,j,n,k))
+                                  *(ubasal3d(i,j,k,n)+ubasal3d(i-1,j,k,n))
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
@@ -973,7 +973,7 @@ subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_
               wneg     = vel - abs(vel) 
               ft2(i,j) = (wneg*Velocity%u(i,j,k,n,taum1) + kmask(k)*wpos*Velocity%u(i,j,kp1,n,taum1)) &
                          *Grd%umask(i,j,k)*Grd%umask(i,j,kp1) &
-                         + basal3d_u(i,j,k)*ubasal3d(i,j,n,k) 
+                         + basal3d_u(i,j,k)*ubasal3d(i,j,k,n) 
               wrk1_v(i,j,k,n) = Grd%umask(i,j,k)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo

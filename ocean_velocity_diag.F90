@@ -2616,7 +2616,7 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
            uint       = vel - uext   
            !term       = pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n)
            term       = pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n) &
-                      + basal3d_u(i,j,1)*ubasal3d(i,j,n,1) !Pedro
+                      + basal3d_u(i,j,1)*ubasal3d(i,j,1,n) !Pedro
            term       = term*boxarea 
            engint(10) = engint(10) + uint*term
            engext(10) = engext(10) + uext*term
@@ -2635,7 +2635,7 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
            uint       = vel - uext   
            !term       = pme_u(i,j)*upme(i,j,n)+river_u(i,j)*uriver(i,j,n)
            term       = pme_u(i,j)*upme(i,j,n)+river_u(i,j)*uriver(i,j,n) &
-                        +basal3d_u(i,j,1)*ubasal3d(i,j,n,1) !Pedro
+                        +basal3d_u(i,j,1)*ubasal3d(i,j,1,n) !Pedro
            term       = 0.5*term*boxarea 
            engint(11) = engint(11) + uint*term
            engext(11) = engext(11) + uext*term

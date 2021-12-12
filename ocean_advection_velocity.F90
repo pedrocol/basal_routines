@@ -566,7 +566,7 @@ end subroutine ocean_advection_velocity_init
 ! </DESCRIPTION>
 !
 subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                     Adv_vel, L_system, use_blobs, basal3d)
+                                     Adv_vel, L_system, basal3d, use_blobs)
   
   type(ocean_velocity_type),  intent(in)    :: Velocity
   type(ocean_time_type),      intent(in)    :: Time
@@ -577,6 +577,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
   !Pedro
   real, dimension(isd:,jsd:),     intent(in)    :: basal
   real, dimension(isd:,jsd:,:),     intent(in)    :: basal3d
+  real, dimension(isd:ied,jsd:jed,nk)   :: basal3d_u !Pedro
   !Pedro
   type(ocean_adv_vel_type),   intent(inout) :: Adv_vel
   type(ocean_lagrangian_type),intent(in)    :: L_system
@@ -623,7 +624,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
 
          do k=1,nk
             tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k) - L_system%conv_blob(:,:,k) &
-                       - basal3d(:,:,k)
+                       - basal3d(:,:,k) !Pedro
             Adv_vel%wrho_bt(:,:,k) = (tmp(:,:) + Adv_vel%diverge_t(:,:,k) + Adv_vel%wrho_bt(:,:,k-1)) &
                                      *Grd%tmask(:,:,k)
 
@@ -638,7 +639,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
       else !use_blobs=.false.
 
          do k=1,nk
-            tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k) - basal3d(:,:,k)
+            tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k) - basal3d(:,:,k) !Pedro
             Adv_vel%wrho_bt(:,:,k) = (tmp(:,:) + Adv_vel%diverge_t(:,:,k) + Adv_vel%wrho_bt(:,:,k-1)) &
                                      *Grd%tmask(:,:,k)
             tmp(:,:) = Grd%umask(:,:,k)*REMAP_BT_TO_BU(tmp(:,:))
@@ -669,7 +670,7 @@ subroutine ocean_advection_velocity (Velocity, Time, Thickness, Dens, pme, river
       ! minus sign arises from the model sign convention.
       Adv_vel%wrho_bt(:,:,0) = -(pme(:,:) + river(:,:) ) !+ basal(:,:)) !Pedro
       do k=1,nk
-        tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k) - basal3d(:,:,k)
+        tmp(:,:) = Thickness%rho_dzt_tendency(:,:,k) - Thickness%mass_source(:,:,k) - basal3d(:,:,k) !Pedro
         Adv_vel%wrho_bt(:,:,k) = (tmp(:,:) + Adv_vel%diverge_t(:,:,k) + Adv_vel%wrho_bt(:,:,k-1)) &
                                  *Grd%tmask(:,:,k)
      enddo
