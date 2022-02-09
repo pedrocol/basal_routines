@@ -1,0 +1,18 @@
+cp input.nml /home/552/pc5520/access-om2/control/1deg_jra55_ryf/
+cp ocean_advection_velocity.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_barotropic.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_basal_tracer.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_param/sources/
+cp ocean_diagnostics.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_diag/
+cp ocean_generic_tracer.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_bgc/
+cp ocean_model.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_sbc.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_tpm.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_tracers/
+cp ocean_tracer_diag.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_diag/
+cp ocean_types.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_velocity_advect.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_velocity_diag.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_diag/
+cp ocean_velocity.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_core/
+cp ocean_vert_gotm.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_param/vertical/
+cp ocean_vert_kpp_mom4p1.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_param/vertical/
+cp ocean_vert_mix.F90 /home/552/pc5520/access-om2/src/mom/src/mom5/ocean_param/vertical/
+
