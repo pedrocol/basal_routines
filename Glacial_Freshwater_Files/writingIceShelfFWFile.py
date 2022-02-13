@@ -16,18 +16,18 @@ listSectors=['westIndian','eastIndian','rossSea','amundsen','bellingshausen','we
 # 1/4 xinit=1 yinit=124
 # 1 deg xinit=1 yinit=31
 xinit=1
-yinit=31
+yinit=124
 
 
 #Open needed Files
-ncfile = netCDF4.Dataset('/home/pedro/DEV/NEMO_Glacial_Freshwater_Files/topog.nc','r')
+ncfile = netCDF4.Dataset('./topog.nc','r')
 varBathy = np.array(ncfile.variables['depth'])[:,:]
 ncfile.close()
 
 varBathy[0,:] = 0 #First values masked
 varBathy[1,:] = 0 #First values masked
 
-ncfile = netCDF4.Dataset('/home/pedro/DEV/NEMO_Glacial_Freshwater_Files/ocean_hgrid.nc','r')
+ncfile = netCDF4.Dataset('./ocean_hgrid.nc','r')
 #varLon = np.array(ncfile.variables['glamt'])[:,:]
 #varLat = np.array(ncfile.variables['gphit'])[:,:]
 #e1t = np.array(ncfile.variables['e1t'])[:,:]
@@ -41,11 +41,11 @@ ncfile.close()
 varLon = varLon[0::2,0::2][:-1,:-1]
 varLat = varLat[0::2,0::2][:-1,:-1]
 #1/4 Deg
-#e1t = e1t[0::2,0::2][:-1,:-1]
-#e2t = e2t[0::2,0::2][:-1,:-1]
+e1t = e1t[0::2,0::2][:-1,:-1]
+e2t = e2t[0::2,0::2][:-1,:-1]
 #1deg
-e1t = e1t[0::2,0::2][:-1,:]
-e2t = e2t[0::2,0::2][:-1,:]
+#e1t = e1t[0::2,0::2][:-1,:]
+#e2t = e2t[0::2,0::2][:-1,:]
 ###########
 area=e1t*e1t
 
@@ -77,7 +77,7 @@ writeDepthFwFluxes(varGL,varFront,varBathy,listShelf,xP,yP,varLon,varLat)
 
 #FreshwaterFlux writen in kg/m2/s as needed by NEMO
 
-ncfile = netCDF4.Dataset('/home/pedro/DEV/NEMO_Glacial_Freshwater_Files/basal_fw.nc','w')
+ncfile = netCDF4.Dataset('./basal_fw.nc','w')
 ncfile.createDimension('time')
 ncfile.createDimension('ny', varLon.shape[0])
 ncfile.createDimension('nx', varLon.shape[1])
