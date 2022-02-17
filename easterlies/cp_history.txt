@@ -36,3 +36,22 @@ diff ocean_vert_gotm.F90 $root/ocean_param/vertical/ocean_vert_gotm.F90
 diff ocean_vert_kpp_mom4p1.F90 $root/ocean_param/vertical/ocean_vert_kpp_mom4p1.F90
 diff ocean_vert_mix.F90 $root/ocean_param/vertical/ocean_vert_mix.F90
 
+root=/home/157/akm157/access-om2/source_code/access-om2/src/mom/src/mom5/
+
+cp $root/ocean_core/ocean_advection_velocity.F90 ./
+cp $root/ocean_core/ocean_barotropic.F90 ./
+cp $root/ocean_param/sources/ocean_basal_tracer.F90 ./
+cp $root/ocean_diag/ocean_diagnostics.F90 ./
+cp $root/ocean_bgc/ocean_generic_tracer.F90 ./
+cp $root/ocean_core/ocean_model.F90 ./
+cp $root/ocean_core/ocean_sbc.F90 ./
+cp $root/ocean_tracers/ocean_tpm.F90 ./
+cp $root/ocean_diag/ocean_tracer_diag.F90 ./
+cp $root/ocean_core/ocean_types.F90 ./
+cp $root/ocean_core/ocean_velocity_advect.F90 ./
+cp $root/ocean_diag/ocean_velocity_diag.F90 ./
+cp $root/ocean_core/ocean_velocity.F90 ./
+cp $root/ocean_param/vertical/ocean_vert_gotm.F90 ./
+cp $root/ocean_param/vertical/ocean_vert_kpp_mom4p1.F90 ./
+cp $root/ocean_param/vertical/ocean_vert_mix.F90 ./
+
