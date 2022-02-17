@@ -46,7 +46,8 @@ valuesFront= {'ar':200, 'ne':200, 'ais': 250, 'w': 200, 'sha':200, 'van':200, 't
 #!!!! Longitude values defined as -180/180
 #every two values is a lon,lat pair definiing a segment
 #(ex:8 values means (lon1,lat1,lon2,lat2,lon3,lat3,lon4,lat4) 
-#This means that the ice shelf is composed by 2 segments between points 1 and 2, and between 3 and 4)
+#This means that the ice shelf is composed by 2 segments between points 1 and 2, and between 3 and 4)a
+# ar, ne, ais Abbot ice shelf, w, sha shackleton,  
 
 lbc=[-61.93,-65.61,-61.74,-69.50]
 fris=[-61.56,-74.80,-47.97,-77.90,-44.07,-78.26,-36.11,-78.30]

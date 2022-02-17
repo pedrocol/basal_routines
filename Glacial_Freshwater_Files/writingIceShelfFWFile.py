@@ -13,6 +13,7 @@ listSectors=['westIndian','eastIndian','rossSea','amundsen','bellingshausen','we
 
 #listShelf=['pig']
 #First coastal point, needed to use extractCoastNew. It is an ocean point with land at (x,y-1)
+# 1/10 xinit=1 yinit=313
 # 1/4 xinit=1 yinit=124
 # 1 deg xinit=1 yinit=31
 xinit=1
@@ -40,6 +41,9 @@ ncfile.close()
 
 varLon = varLon[0::2,0::2][:-1,:-1]
 varLat = varLat[0::2,0::2][:-1,:-1]
+#1/10 Deg
+#e1t = e1t[0::2,0::2][:-1,:]
+#e2t = e2t[0::2,0::2][:-1,:]
 #1/4 Deg
 e1t = e1t[0::2,0::2][:-1,:-1]
 e2t = e2t[0::2,0::2][:-1,:-1]
@@ -47,6 +51,7 @@ e2t = e2t[0::2,0::2][:-1,:-1]
 #e1t = e1t[0::2,0::2][:-1,:]
 #e2t = e2t[0::2,0::2][:-1,:]
 ###########
+print(varBathy.shape,varLon.shape,e1t.shape)
 area=e1t*e1t
 
 [ydim,xdim]=varBathy.shape
@@ -79,10 +84,10 @@ writeDepthFwFluxes(varGL,varFront,varBathy,listShelf,xP,yP,varLon,varLat)
 
 ncfile = netCDF4.Dataset('./basal_fw.nc','w')
 ncfile.createDimension('time')
-ncfile.createDimension('ny', varLon.shape[0])
-ncfile.createDimension('nx', varLon.shape[1])
+ncfile.createDimension('lat', varLon.shape[0])
+ncfile.createDimension('lon', varLon.shape[1])
 time = ncfile.createVariable('time','f4',('time'))
-time.lon_name='time'
+time.long_name='time'
 time.cartesian_axis = "T"
 time.axis = "T"
 time.calendar_type = "noleap"
@@ -90,9 +95,10 @@ time.modulo = " "
 time.standard_name = "time"
 time.climatology = "climatology_bounds"
 time.units='months since 0001-01-01 00:00:00'
-dMax = ncfile.createVariable('sodepmax_isf','f4',('time','ny','nx'))
-dMin = ncfile.createVariable('sodepmin_isf','f4',('time','ny','nx'))
-fw = ncfile.createVariable('meltingFlux','f4',('time','ny','nx'))
+dMax = ncfile.createVariable('sodepmax_isf','f4',('time','lat','lon'))
+dMin = ncfile.createVariable('sodepmin_isf','f4',('time','lat','lon'))
+fw = ncfile.createVariable('meltingFlux','f4',('time','lat','lon'))
+time[:] = [0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5]
 fw[:,:,:]=FreshwaterFlux[:,:,:]
 dMax[:,:,:]=varGL[:,:,:]
 dMin[:,:,:]=varFront[:,:,:]

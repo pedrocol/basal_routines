@@ -105,6 +105,8 @@ def createIceShelfFluxFile(varRunoff,listIceShelves,xP,yP,varLon,varLat,area):
         listPoints=list(set(points))
         xPoints=list(zip(*listPoints))[0]
         yPoints=list(zip(*listPoints))[1]
+
+        print(shelf,limits,xPoints)
         
         numPoints=np.size(xPoints)
         freshVal=FWF*factor/numPoints #Share the Gt/yr between all the points which belong to the IS
@@ -381,7 +383,7 @@ def SegmentPoints(varIn,xinit,yinit,xfin,yfin,prevInit):
                     prev=2
                     
         counter=counter+1
-        if counter==200000:
+        if counter==2000000:
             print('extractCoast felt in a loop')
             break
 
@@ -415,13 +417,15 @@ def extractCoast(varIn,xinit,yinit):
     
     x=0
     y=yinit
-    xfin=xdim
+    xfin=xdim-1
     yfin=ydim
 
             
-    while (x!=xfin or y!=yfin):
-        xfin=xdim-1
-        yfin=yinit
+    #while (x!=xfin or y!=yfin):
+    while (x<xfin and y<yfin):
+        print(x,y)
+        #xfin=xdim-1
+        #yfin=yinit
         
         if (x+xinit)>=xdim:
             xwrite=x+xinit-xdim

@@ -538,8 +538,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
        enddo
     endif
   else
-    misfzt(:,:)=1
-    misfzb(:,:)=40
+    misfzt(:,:)=100
+    misfzb(:,:)=400
     fwfisf(:,:) = basal_i(:,:)
   endif
 
@@ -556,6 +556,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
      do i=isc,iec
 
         if (fwfisf(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
+
+           if (fwfisf(i,j) > 0.0 .and. misfzt(i,j) == 0) then
+              misfzt(i,j)=100
+              misfzb(i,j)=400
+           endif
 
 
         ! the array "river" contains the volume rate (m/s) or mass
