@@ -860,6 +860,9 @@ integer :: id_eta_geoid      =-1
 integer :: id_pme_velocity    =-1
 integer :: id_pme_total       =-1
 integer :: id_river_total     =-1
+!Pedro
+integer :: id_basal_total     =-1
+!Pedro
 integer :: id_etat_avg        =-1
 integer :: id_mass_total      =-1
 integer :: id_ext_mode_source =-1
@@ -2039,6 +2042,13 @@ subroutine barotropic_diag_init(Time)
                    Time%model_time,'mass river added over dtuv time', 'kg', &
                    missing_value=missing_value, range=(/-10.0,1e18/))
 
+  !Pedro
+  id_basal_total = register_diag_field ('ocean_model', 'basal_total',       &
+                   Time%model_time,'mass basal added over dtuv time', 'kg', &
+                   missing_value=missing_value, range=(/-10.0,1e18/))
+
+  !Pedro
+
   id_etat_avg  = register_diag_field ('ocean_model', 'etat_avg', &
                  Time%model_time, 'area averaged eta_t','meter', &
                  missing_value=missing_value, range=(/-1e3,1e3/))
@@ -2406,8 +2416,8 @@ end subroutine eta_and_pbot_update
 !
 ! </DESCRIPTION>
 !
-subroutine eta_and_pbot_diagnose (Time, Dens, Thickness, patm, pme, river, Ext_mode, &
-                                  L_system, use_blobs)
+subroutine eta_and_pbot_diagnose (Time, Dens, Thickness, patm, pme, river, basal, &
+                                  Ext_mode, L_system, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_density_type),       intent(in)    :: Dens
@@ -2416,7 +2426,10 @@ subroutine eta_and_pbot_diagnose (Time, Dens, Thickness, patm, pme, river, Ext_m
   type(ocean_lagrangian_type),    intent(in)    :: L_system
   real, dimension(isd:,jsd:),     intent(in)    :: patm
   real, dimension(isd:,jsd:),     intent(in)    :: pme
-  real, dimension(isd:,jsd:),     intent(in)    :: river 
+  real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   integer  :: tau, taup1
@@ -2585,8 +2598,10 @@ subroutine eta_and_pbot_diagnose (Time, Dens, Thickness, patm, pme, river, Ext_m
   endif 
 
   ! global integrals for diagnostics 
-  call barotropic_integrals (Time, Ext_mode, patm, pme, river)
-
+  !Pedro
+  !call barotropic_integrals (Time, Ext_mode, patm, pme, river)
+  call barotropic_integrals (Time, Ext_mode, patm, pme, river,basal)
+  !Pedro
   ! diagnostics 
 
   call diagnose_2d(Time, Grd, id_eta_t, Ext_mode%eta_t(:,:,tau))
@@ -2665,11 +2680,14 @@ end subroutine eta_and_pbot_diagnose
 !
 ! </DESCRIPTION>
 !
-subroutine eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
+subroutine eta_and_pbot_tendency(Time, pme, river, basal, Ext_mode, use_blobs)
   
   type(ocean_time_type),          intent(in)    :: Time
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   type(ocean_external_mode_type), intent(inout) :: Ext_mode
   logical                       , intent(in)    :: use_blobs
 
@@ -2685,7 +2703,7 @@ subroutine eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
          do i=isd,ied       
             Ext_mode%deta_dt(i,j) = Grd%tmask(i,j,1)                              &
                  *rho0r*( Ext_mode%conv_rho_ud_t(i,j,tau) + pme(i,j) + river(i,j) &
-                 +Ext_mode%source(i,j) )
+                 + basal(i,j) + Ext_mode%source(i,j) ) !Pedro
          enddo
       enddo
       if (use_blobs) then
@@ -2702,7 +2720,7 @@ subroutine eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
          do i=isd,ied       
             Ext_mode%dpbot_dt(i,j) = Ext_mode%dpatm_dt(i,j) + grav*Grd%tmask(i,j,1) &
                  *( Ext_mode%conv_rho_ud_t(i,j,tau) + pme(i,j) + river(i,j)         &
-                 +Ext_mode%source(i,j) ) 
+                 + basal(i,j) + Ext_mode%source(i,j) ) !Pedro
          enddo
       enddo
       if (use_blobs) then
@@ -2761,7 +2779,7 @@ end subroutine eta_and_pbot_tendency
 ! </DESCRIPTION>
 !
 subroutine update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
-                                    Ext_mode, patm, pme, river, use_blobs)
+                                    Ext_mode, patm, pme, river, basal, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_density_type),       intent(in)    :: Dens
@@ -2771,6 +2789,9 @@ subroutine update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
   real, dimension(isd:,jsd:),     intent(in)    :: patm
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   type(time_type)                  :: next_time 
@@ -2831,15 +2852,27 @@ subroutine update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
       
       if(horz_grid == MOM_BGRID) then 
          if(vert_coordinate_class==DEPTH_BASED) then 
-           call pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+           !Pedro
+           !call pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+           call pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, river, basal, use_blobs)
+           !Pedro
          elseif(vert_coordinate_class==PRESSURE_BASED ) then 
-           call pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+           !Pedro
+           !call pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+           call pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, basal, use_blobs)
+           !Pedro
          endif  
       else 
          if(vert_coordinate_class==DEPTH_BASED) then 
-           call pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+           !Pedro
+           !call pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+           call pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, river, basal, use_blobs)
+           !Pedro
          elseif(vert_coordinate_class==PRESSURE_BASED ) then 
-           call pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+           !Pedro
+           !call pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+           call pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, basal, use_blobs)
+           !Pedro
          endif  
       endif 
 
@@ -2986,7 +3019,10 @@ subroutine update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
 
 
   ! diagnose contributions to sea level
-  call eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
+  !Pedro
+  !call eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
+  call eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal)
+  !Pedro
 
 
   ! send diagnostics to diag_manager     
@@ -3222,7 +3258,7 @@ end subroutine ocean_mass_forcing
 !
 ! </DESCRIPTION>
 !
-subroutine pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+subroutine pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, river, basal, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time 
   type(ocean_thickness_type),     intent(in)    :: Thickness 
@@ -3230,6 +3266,9 @@ subroutine pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, r
   real, dimension(isd:,jsd:),     intent(in)    :: patm
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   type(time_type)                                :: time_bt 
@@ -3309,7 +3348,11 @@ subroutine pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, r
         ! Remove Ext_mode%eta_smooth from Ext_mode%source, 
         ! since Ext_mode%eta_smooth is only to be used for 
         ! smoothing eta_t, not for smoothing eta_t_bt.
-        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        !Pedro
+        !steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + basal(i,j) + &
+                              Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        !Pedro
         if (use_blobs) then
            steady_forcing(i,j) = steady_forcing(i,j) + Grd%tmask(i,j,1)*Ext_mode%conv_blob(i,j)
         endif
@@ -3598,7 +3641,7 @@ end subroutine pred_corr_tropic_depth_bgrid
 !
 ! </DESCRIPTION>
 !
-subroutine pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, river, use_blobs)
+subroutine pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, river, basal, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time 
   type(ocean_thickness_type),     intent(in)    :: Thickness 
@@ -3606,6 +3649,9 @@ subroutine pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, r
   real, dimension(isd:,jsd:),     intent(in)    :: patm
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   type(time_type)                                  :: time_bt 
@@ -3699,7 +3745,11 @@ subroutine pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, r
         ! Remove Ext_mode%eta_smooth from Ext_mode%source, 
         ! since Ext_mode%eta_smooth is only to be used for 
         ! smoothing eta_t, not for smoothing eta_t_bt.
-        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        !Pedro
+        !steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + basal (i,j) + &
+                              Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
+        !Pedro
         if (use_blobs) then
            steady_forcing(i,j) = steady_forcing(i,j) + Grd%tmask(i,j,1)*Ext_mode%conv_blob(i,j)
         endif
@@ -3986,13 +4036,16 @@ end subroutine pred_corr_tropic_depth_cgrid
 !
 ! </DESCRIPTION>
 !
-subroutine pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+subroutine pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, basal, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time 
   type(ocean_thickness_type),     intent(in)    :: Thickness 
   type(ocean_external_mode_type), intent(inout) :: Ext_mode
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   type(time_type)                                :: time_bt 
@@ -4064,9 +4117,14 @@ subroutine pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, 
         ! Remove Ext_mode%pbot_smooth from Ext_mode%source, 
         ! since Ext_mode%pbot_smooth is only to be used for 
         ! smoothing pbot, not for smoothing anompb_bt.
+        !Pedro
+        !steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
+        !*(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
+        !+ Ext_mode%dpatm_dt(i,j))
         steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
-        *(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
-        + Ext_mode%dpatm_dt(i,j))
+        *(grav*(pme(i,j) + river(i,j) + basal (i,j) + Ext_mode%source(i,j) &
+        - Ext_mode%pbot_smooth(i,j)) + Ext_mode%dpatm_dt(i,j))
+        !Pedro
         if (use_blobs) then
            steady_forcing(i,j) = steady_forcing(i,j) + Grd%tmask(i,j,1)*Ext_mode%conv_blob(i,j)
         endif 
@@ -4352,13 +4410,16 @@ end subroutine pred_corr_tropic_press_bgrid
 !
 ! </DESCRIPTION>
 !
-subroutine pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, use_blobs)
+subroutine pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, basal, use_blobs)
 
   type(ocean_time_type),          intent(in)    :: Time 
   type(ocean_thickness_type),     intent(in)    :: Thickness 
   type(ocean_external_mode_type), intent(inout) :: Ext_mode
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
   logical,                        intent(in)    :: use_blobs
 
   type(time_type)                                  :: time_bt 
@@ -4446,9 +4507,14 @@ subroutine pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, 
         ! Remove Ext_mode%pbot_smooth from Ext_mode%source, 
         ! since Ext_mode%pbot_smooth is only to be used for 
         ! smoothing pbot, not for smoothing anompb_bt.
+        !Pedro
+        !steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
+        !*(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
+        !+ Ext_mode%dpatm_dt(i,j))
         steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
-        *(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
-        + Ext_mode%dpatm_dt(i,j))
+        *(grav*(pme(i,j) + river(i,j) + basal(i,j) + Ext_mode%source(i,j) &
+        - Ext_mode%pbot_smooth(i,j)) + Ext_mode%dpatm_dt(i,j))
+        !Pedro
         if (use_blobs) then
            steady_forcing(i,j) = steady_forcing(i,j) + Grd%tmask(i,j,1)*Ext_mode%conv_blob(i,j)
         endif 
@@ -5066,13 +5132,17 @@ end subroutine ocean_pbot_smooth
 ! Compute area averaged fresh water and surface height and ocean mass.
 ! </DESCRIPTION>
 !
-subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river)
+subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river, basal)
   
   type(ocean_time_type),          intent(in) :: Time
   type(ocean_external_mode_type), intent(in) :: Ext_mode
   real, dimension(isd:,jsd:),     intent(in) :: patm
   real, dimension(isd:,jsd:),     intent(in) :: pme
-  real, dimension(isd:,jsd:),     intent(in) :: river 
+  real, dimension(isd:,jsd:),     intent(in) :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  real    :: basal_total
+  !Pedro
 
   real    :: pme_total, river_total, etat_avg, mass_total
   integer :: i, j, tau
@@ -5087,11 +5157,13 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river)
   
   if (diag_step > 0 .and. mod(Time%itt, diag_step) == 0&
        .or. need_data(id_pme_total,next_time) .or. need_data(id_river_total,next_time)&
-       .or. need_data(id_etat_avg,next_time)  .or. need_data(id_mass_total,next_time)) then  
+       .or. need_data(id_etat_avg,next_time)  .or. need_data(id_mass_total,next_time) &
+       .or. need_data(id_basal_total,next_time)) then  
 
       etat_avg    = 0.0 
       pme_total   = 0.0       
       river_total = 0.0 
+      basal_total = 0.0 
       mass_total  = 0.0
 
       tau = Time%tau
@@ -5102,6 +5174,9 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river)
             etat_avg    = etat_avg    + Grd%dat(i,j)*Grd%tmask(i,j,1)*Ext_mode%eta_t(i,j,tau)*Grd%obc_tmask(i,j)
             pme_total   = pme_total   + Grd%dat(i,j)*Grd%tmask(i,j,1)*pme(i,j)*Grd%obc_tmask(i,j)
             river_total = river_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*river(i,j)*Grd%obc_tmask(i,j)
+            !Pedro
+            basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)*Grd%obc_tmask(i,j)
+            !Pedro
             mass_total  = mass_total  + Grd%dat(i,j)*Grd%tmask(i,j,1) &
                                        *(Ext_mode%pbot_t(i,j,tau)-patm(i,j))*Grd%obc_tmask(i,j)
           enddo
@@ -5112,6 +5187,9 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river)
             etat_avg    = etat_avg    + Grd%dat(i,j)*Grd%tmask(i,j,1)*Ext_mode%eta_t(i,j,tau)
             pme_total   = pme_total   + Grd%dat(i,j)*Grd%tmask(i,j,1)*pme(i,j)
             river_total = river_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*river(i,j)
+            !Pedro
+            basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)
+            !Pedro
             mass_total  = mass_total  + Grd%dat(i,j)*Grd%tmask(i,j,1) &
                                        *(Ext_mode%pbot_t(i,j,tau)-patm(i,j))
           enddo
@@ -5120,14 +5198,23 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river)
       call mpp_sum (etat_avg)
       call mpp_sum (pme_total)
       call mpp_sum (river_total)
+      !Pedro
+      call mpp_sum (basal_total)
+      !Pedro
       call mpp_sum (mass_total)
 
       etat_avg    = etat_avg/Grd%tcella(1)
       pme_total   = pme_total*dtuv
       river_total = river_total*dtuv
+      !Pedro
+      basal_total = basal_total*dtuv
+      !Pedro
 
       if (id_etat_avg    > 0) used = send_data (id_etat_avg,    etat_avg,    Time%model_time)
       if (id_river_total > 0) used = send_data (id_river_total, river_total, Time%model_time)
+      !Pedro
+      if (id_basal_total > 0) used = send_data (id_basal_total, basal_total, Time%model_time)
+      !Pedro
       if (id_pme_total   > 0) used = send_data (id_pme_total,   pme_total,   Time%model_time)
       if (id_mass_total  > 0) used = send_data (id_mass_total,  mass_total,  Time%model_time)
 
@@ -5808,7 +5895,7 @@ end subroutine psi_compute
 !
 ! </DESCRIPTION>
 !
-subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
+subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_density_type),       intent(in)    :: Dens
@@ -5816,6 +5903,9 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
   type(ocean_external_mode_type), intent(inout) :: Ext_mode 
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: tmp
   integer :: i, j, k
@@ -5876,7 +5966,10 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
          do i=isc,iec
             rhobarz_inv             =  rhodzt_inv(i,j)  *(Grd%ht(i,j) + Ext_mode%eta_t(i,j,tau))           
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%conv_rho_ud_t(i,j,tau)
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j))
+            !Pedro
+            !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j) + basal(i,j))
+            !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%source(i,j)
 
             factor                  =  (1.0+Ext_mode%eta_t(i,j,tau)*Grd%htr(i,j)) &
@@ -5896,7 +5989,10 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river)
       do j=jsc,jec
          do i=isc,iec
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%conv_rho_ud_t(i,j,tau)
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j))
+            !Pedro
+            !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j) + basal(i,j))
+            !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%source(i,j)
 
             factor                  =  (1.0+Ext_mode%eta_t(i,j,tau)*Grd%htr(i,j)) &

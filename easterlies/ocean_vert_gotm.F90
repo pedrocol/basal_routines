@@ -956,13 +956,16 @@ subroutine vert_mix_gotm_bgrid (Time, Thickness, Velocity, T_prog, Dens, visc_cb
 !
 ! </DESCRIPTION>
 !
-subroutine advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
+subroutine advect_gotm_compute(Time, Adv_vel, Thickness, pme, river, basal)
 
   type(ocean_time_type),      intent(in) :: Time
   type(ocean_adv_vel_type),   intent(in) :: Adv_vel
   type(ocean_thickness_type), intent(in) :: Thickness
   real, dimension(isd:,jsd:), intent(in) :: pme
   real, dimension(isd:,jsd:), intent(in) :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
 
   if ( .not. module_is_initialized ) then 
     call  mpp_error(FATAL, &
@@ -976,9 +979,9 @@ subroutine advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
   call mpp_update_domains (Gotm(index_diss)%field(:,:,:,taup1_gotm), Dom%domain2d, complete=.true.)
 
   if(advection_gotm_method==1) then 
-    call advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river)
+    call advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river, basal) !Pedro
   elseif(advection_gotm_method==2) then 
-    call advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river)
+    call advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river, basal) !Pedro
   endif 
 !  call mpp_update_domains (Gotm(index_tke)%field(:,:,:,taup1_gotm),  Dom%domain2d)
 !  call mpp_update_domains (Gotm(index_diss)%field(:,:,:,taup1_gotm), Dom%domain2d)
@@ -994,13 +997,16 @@ end subroutine advect_gotm_compute
 ! First order upwind to advect GOTM scalar turbulence quantities tke and diss.
 ! </DESCRIPTION>
 !
-subroutine advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river)
+subroutine advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river, basal)
 
   type(ocean_time_type),      intent(in) :: Time
   type(ocean_adv_vel_type),   intent(in) :: Adv_vel
   type(ocean_thickness_type), intent(in) :: Thickness
   real, dimension(isd:,jsd:), intent(in) :: pme
   real, dimension(isd:,jsd:), intent(in) :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: fe, fn, ft1, ft2
   real, dimension(isd:ied,jsd:jed) :: tmp_flux
@@ -1083,7 +1089,8 @@ subroutine advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river)
      ! to that in the top model grid cell.
      do j=jsc,jec
         do i=isc,iec
-           gotm_tendency(i,j,1) = Grd%tmask(i,j,1)*(pme(i,j)+river(i,j))*Gotm(n)%field(i,j,1,taup1_gotm)
+           gotm_tendency(i,j,1) = Grd%tmask(i,j,1)*(pme(i,j)+river(i,j)+basal(i,j))&
+                                  *Gotm(n)%field(i,j,1,taup1_gotm) !Pedro
         enddo
      enddo
 
@@ -1182,13 +1189,16 @@ end subroutine advect_gotm_upwind
 ! Sweby scheme to advect GOTM scalar turbulence quantities tke and diss.
 ! </DESCRIPTION>
 !
-subroutine advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river)
+subroutine advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river, basal)
 
   type(ocean_time_type),      intent(in) :: Time
   type(ocean_adv_vel_type),   intent(in) :: Adv_vel
   type(ocean_thickness_type), intent(in) :: Thickness
   real, dimension(isd:,jsd:), intent(in) :: pme
   real, dimension(isd:,jsd:), intent(in) :: river
+  !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  !Pedro
 
   real,dimension(isc:iec,jsc:jec)        :: ftp
   real,dimension(isc:iec,jsc:jec)        :: fbt
@@ -1447,7 +1457,8 @@ subroutine advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river)
      do j=jsd,jed
         do i=isd,ied
            gotm_tendency(i,j,1) = gotm_tendency(i,j,1) + &
-                                  Grd%tmask(i,j,1)*(pme(i,j)+river(i,j))*Gotm(n)%field(i,j,1,taup1_gotm)
+                                  Grd%tmask(i,j,1)*(pme(i,j)+river(i,j)+basal(i,j))&
+                                  *Gotm(n)%field(i,j,1,taup1_gotm) !Pedro
         enddo
      enddo
 

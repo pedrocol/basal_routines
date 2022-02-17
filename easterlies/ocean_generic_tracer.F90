@@ -325,16 +325,21 @@ contains
   !   call ocean_generic_sbc(Ice_ocean_boundary_fluxes,Disd,Djsd, T_prog )
   !  </TEMPLATE>
   ! </SUBROUTINE>
-  subroutine ocean_generic_sbc(Ice_ocean_boundary_fluxes,Disd,Djsd, T_prog, runoff )
+  subroutine ocean_generic_sbc(Ice_ocean_boundary_fluxes,Disd,Djsd, T_prog, runoff,basal)
     type(coupler_2d_bc_type), intent(in)                            :: Ice_ocean_boundary_fluxes
     integer,                  intent(in)                            :: Disd,Djsd
     type(ocean_prog_tracer_type), dimension(:), intent(inout)       :: T_prog
     real, intent(in), dimension(Disd:,Djsd:)                        :: runoff
+    real, intent(in), dimension(Disd:,Djsd:)                        :: basal !Pedro
 
     type(g_tracer_type), pointer    :: g_tracer_list,g_tracer,g_tracer_next
     integer                           :: g_tracer_index
     character(len=fm_string_len)      :: g_tracer_name
     character(len=fm_string_len), parameter :: sub_name = 'update_generic_tracer_sbc'
+
+    !Pedro
+    runoff(:,:) = runoff(:,:) + basal(:,:)
+    !Pedro
 
     !Extract the tracer surface fields from coupler 
     call generic_tracer_coupler_get(Ice_ocean_boundary_fluxes)
@@ -392,6 +397,11 @@ contains
        g_tracer=>g_tracer_next  
 
     enddo
+
+    !Pedro
+    runoff(:,:) = runoff(:,:) - basal(:,:)
+    !Pedro
+
   end subroutine ocean_generic_sbc
 
   ! <SUBROUTINE NAME="ocean_generic_column_physics">
