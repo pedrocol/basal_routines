@@ -5871,7 +5871,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
             wrk1_2d(i,j) = T_prog(index_temp)%conversion*(                                               &
                    T_prog(index_temp)%stf(i,j)                                                           &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                            &
-                 + T_prog(index_temp)%runoff_tracer_flux(i,j)                                            &
+                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                            &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                           &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j)                               &
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
