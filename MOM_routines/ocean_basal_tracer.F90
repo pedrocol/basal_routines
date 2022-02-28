@@ -621,7 +621,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     basal3d(i,j,k) = ( zextra + zinsert ) / ( dtime*delta(k) ) !Equivalente basal flux
                     zextra=zextra+zinsert
 
-                    tbasal_sum = tbasal_sum + tbasal
+                    tbasal_sum = tbasal_sum + tbasal*delta(k)
                  enddo
 
                  k=misfkt(i,j) !Treatment at the first level
@@ -635,12 +635,12 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     zinsert = fwfisf(i,j)*dtime*delta(k)
                     tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                    (Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                    tbasal_sum = tbasal_sum + tbasal
+                    tbasal_sum = tbasal_sum + tbasal*delta(k)
                  enddo
                  firstlev = misfkt(i,j)                 
               endif !method
               
-              T_prog(n)%tbasal(i,j) = tbasal_sum / ( misfkb(i,j) - misfkt(i,j) + 1) !average for ocean_diagnostics
+              T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
               do k=firstlev,misfkb(i,j)
                  T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 

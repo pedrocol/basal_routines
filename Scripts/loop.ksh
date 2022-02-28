@@ -43,12 +43,10 @@ root_save=/scratch/e14/pc5520/OUTPUT/$conf/extract/y$year/vert_levels/$var
 mkdir -p $root_save/2334/
 mkdir -p $root_save/3446/
 #t0=$(expr 30 + 59 + 91 + 92 + 1)
-#t0=0
-t0=273
+t0=0
 for digit in $(seq $outini $outfin); do
     number=`ncdump -h $root_data/output$digit/ocean/rregionocean_daily_3d_salt.nc | grep UNLIMITED | sed 's/[^0-9]*//g'`
-    #init_t=0
-    init_t=46
+    init_t=0
     end_t=$(expr $number - 1)
     for tim in $(seq $init_t $end_t ); do
         tf=$(expr $t0 + $tim)
@@ -59,6 +57,49 @@ for digit in $(seq $outini $outfin); do
     done
     t0=$(expr $t0 + $end_t + 1)
 done
+
+#3d values of temp and salt in Section - Daily
+conf="acces-om2-01-GPC001"
+#conf="acces-om2-01-GAM001"
+if [ "$conf" = "acces-om2-01-GAM001" ]; then
+   outini=996
+   outfin=999
+   root_data=/g/data/ik11/outputs/access-om2-01/01deg_jra55v13_ryf9091_rerun_for_easterlies/
+elif [ "$conf" = "acces-om2-01-GPC001" ]; then
+   outini=996
+   outfin=1001
+   root_data=/home/552/pc5520/access-om2/control/01deg_jra55v13_ryf9091_rerun_for_easterlies/archive
+fi
+echo $conf
+echo $root_data
+year=2150
+var='salt'
+ii=1123
+root_save=/scratch/e14/pc5520/OUTPUT/$conf/extract/y$year/sections/$var/$ii
+mkdir -p $root_save
+t0=0
+for digit in $(seq $outini $outfin); do
+    number=`ncdump -h $root_data/output$digit/ocean/rregionocean_daily_3d_salt.nc | grep UNLIMITED | sed 's/[^0-9]*//g'`
+    init_t=0
+    end_t=$(expr $number - 1)
+    for tim in $(seq $init_t $end_t ); do
+        tf=$(expr $t0 + $tim)
+        tf=$(seq -f "%03g" $tf $tf)
+        echo $tf
+	ncks -O -v "$var" -d xt_ocean_sub01,$ii,$ii -d time,$tim,$tim $root_data/output"$digit"/ocean/rregionocean_daily_3d_"$var".nc $root_save/rregionocean_daily_3d_i"$ii"_"$var"_"$tf".nc
+    done
+    t0=$(expr $t0 + $end_t + 1)
+done
+cd $root_save
+root_save2=/scratch/e14/pc5520/OUTPUT/$conf/extract/y$year/sections/$var/$ii/diff
+root=/scratch/e14/pc5520/OUTPUT/
+mkdir -p $root_save2
+for f in *; do
+    echo $f
+    ncdiff -O $root/acces-om2-01-GPC001/extract/y$year/sections/$var/$ii/$f $root/acces-om2-01-GAM001/extract/y$year/sections/$var/$ii/$f $root_save2/$f
+done
+
+
 
 #Ice Volume - Monthly
 ncrcat -v vicen_m $root_data/output*/ice/OUTPUT/iceh.2150-*.nc $root_save/extract/y2150/ice/ice_vicen_y2150.nc

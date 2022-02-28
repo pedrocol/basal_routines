@@ -45,15 +45,15 @@ def import_hgrid(ncfile=None):
 
 def plot2d(ncfile=None,var=None):
     #Data
-    root = "/scratch/e14/pc5520/OUTPUT/acces-om2-01-GPC001/extract/y2150/diffs_vertave/salt/2334/"
-    ncfile = root+"avet_avek_ncdiff_rregionocean_daily_3d_k2334_salt_y2150.nc"
+    root = "/scratch/e14/pc5520/OUTPUT/acces-om2-01-GPC001/extract/y2150/diffs_vertave/salt/3446/"
+    ncfile = root+"avet_avek_ncdiff_rregionocean_daily_3d_k3446_salt_y2150.nc"
     gridfile = "/home/552/pc5520/access-om2/control/01deg_jra55v13_ryf9091_rerun_for_easterlies/archive/rregionocean.nc"
     var = "salt"
     data_plot = import_data2d(ncfile,var)
     #Axes
     projection = ccrs.PlateCarree(central_longitude=0)
-    projection = ccrs.SouthPolarStereo(central_longitude=0.0, globe=None)
-    ax = plt.axes(projection=projection)
+    #projection = ccrs.Orthographic(180,-90)
+    ax = plt.axes(projection=ccrs.SouthPolarStereo())
     #Grid
     lon,lat = import_hgrid(ncfile=gridfile)
     #Plot
@@ -64,5 +64,5 @@ def plot2d(ncfile=None,var=None):
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     CS = ax.contourf(lon,lat,data_plot,contours,\
                      cmap = cmap,norm=norm,vmin=vmin,vmax=vmax,transform=projection,extend='both')
-    plt.ylim(ymax=-60,ymin=-90)
+    #plt.ylim(ymax=-60,ymin=-90)
     plt.show(block=False)
