@@ -53,7 +53,7 @@ for digit in $(seq $outini $outfin); do
         tf=$(seq -f "%03g" $tf $tf)
         echo $tf
         ncks -O -v "$var" -d st_ocean,23,34 -d time,$tim,$tim $root_data/output"$digit"/ocean/rregionocean_daily_3d_"$var".nc $root_save/2334/rregionocean_daily_3d_k2334_"$var"_$tf.nc
-        ncks -O -v "$var" -d st_ocean,34,46 -d time,$tim,$tim $root_data/output"$digit"/ocean/rregionocean_daily_3d_"$var".nc $root_save/3446/rregionocean_daily_3d_k3446_"$var"_$tf.nc
+        ncks -O -v "$var" -d st_ocean,34,46 -d time,$tim,$avet_tim $root_data/output"$digit"/ocean/rregionocean_daily_3d_"$var".nc $root_save/3446/rregionocean_daily_3d_k3446_"$var"_$tf.nc
     done
     t0=$(expr $t0 + $end_t + 1)
 done
@@ -90,19 +90,41 @@ for digit in $(seq $outini $outfin); do
     done
     t0=$(expr $t0 + $end_t + 1)
 done
+#ncrcat and erase
 cd $root_save
-root_save2=/scratch/e14/pc5520/OUTPUT/$conf/extract/y$year/sections/$var/$ii/diff
+ncrcat rr*.nc cat_rregionocean_daily_3d_i"$ii"_"$var"_"$year".nc
+rm rr*.nc
 root=/scratch/e14/pc5520/OUTPUT/
-mkdir -p $root_save2
-for f in *; do
-    echo $f
-    ncdiff -O $root/acces-om2-01-GPC001/extract/y$year/sections/$var/$ii/$f $root/acces-om2-01-GAM001/extract/y$year/sections/$var/$ii/$f $root_save2/$f
-done
-
+ncdiff -O $root/acces-om2-01-GPC001/extract/y$year/sections/$var/$ii/cat_rregionocean_daily_3d_i"$ii"_"$var"_"$year".nc $root/acces-om2-01-GAM001/extract/y$year/sections/$var/$ii/cat_rregionocean_daily_3d_i"$ii"_"$var"_"$year".nc $root_save/diff_cat_rregionocean_daily_3d_i"$ii"_"$var"_"$year".nc
 
 
 #Ice Volume - Monthly
-ncrcat -v vicen_m $root_data/output*/ice/OUTPUT/iceh.2150-*.nc $root_save/extract/y2150/ice/ice_vicen_y2150.nc
+conf="acces-om2-01-GPC001"
+#conf="acces-om2-01-GAM001"
+if [ "$conf" = "acces-om2-01-GAM001" ]; then
+   outini=996
+   outfin=999
+   root_data=/g/data/ik11/outputs/access-om2-01/01deg_jra55v13_ryf9091_rerun_for_easterlies/
+elif [ "$conf" = "acces-om2-01-GPC001" ]; then
+   outini=996
+   outfin=1001
+   root_data=/home/552/pc5520/access-om2/control/01deg_jra55v13_ryf9091_rerun_for_easterlies/archive
+fi
+echo $conf
+echo $root_data
+root_save=/scratch/e14/pc5520/OUTPUT/$conf/extract/y2150/ice
+mkdir -p $root_save
+for digit in $(seq $outini $outfin); do
+    cd $root_data/output"$digit"/ice/OUTPUT/
+    for f in *; do 
+       ncks -v vicen_m $f $root_save/$f
+    done
+done
+cd $root_save
+ncrcat *.nc $root_save/ice_vicen_y2150.nc
+rm iceh.2150-*.nc
+ncdiff -O $root_save/ice_vicen_y2150.nc /scratch/e14/pc5520/OUTPUT/acces-om2-01-GAM001/extract/y2150/ice/ice_vicen_y2150.nc $root_save/diff_ice_vicen_y2150.nc
+ncea -O $root_save/diff_ice_vicen_y2150.nc $root_save/avet_diff_ice_vicen_y2150.nc
 
 #Differences
 conf1="acces-om2-01-GPC001"
