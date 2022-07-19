@@ -1,0 +1,41 @@
+&naminterpo        !   parameters of the interpolation routine
+!-----------------------------------------------------------------------
+!   l_interp    = 1                              ! method 0/1 0=average 1=median 
+!   ln_regin    = .false.                        ! regular coordinates input file
+!   l_sign      = .false.                        ! .true. sign of data are change (to deals with surface elevation)
+!   chfilbatin  = "BedMachineAntarctica-2020-07-15_NEMOBAT.nc"                   ! nc file of bathymetry file (source)
+!   cxdim       = "x"                            ! name of 1st dimension (x, lon ...)
+!   cydim       = "y"                            ! name of 2nd dimension (y, lat ...)
+!   chfilout    = "eORCA025_msk_step2.nc"        ! output filename
+!   chfilgrid   = "eORCA025_coord_c3.0.nc"       ! NEMO coordinate file
+!   cvarin      = "msk_oce"                      ! variable name in input file
+!   cvarout     = "msk"                          ! variable name in input file
+!   nperio      = 4                              ! boundary condition 
+!     !jperio= 0, closed
+!     !jperio= 1, cyclic east-west
+!     !jperio= 2, equatorial symmetric
+!     !jperio= 3, north fold with T-point pivot; jperio= 4, the same + cyclic east-west
+!     !jperio= 5, north fold with F-point pivot; jperio= 6, the same + cyclic east-west
+!     !jperio= 99, automatic detection based on the grid size (ORCA2/ORCA05/ORCA025)
+
+   nn_interp   = 1                              ! method 0/1 0=average 1=median
+   nn_perio      = 4                              ! boundary condition
+   cn_fout     = "MOM_msk_step2.nc"      ! output filename
+   cn_varout   = "msk"                   ! variable name in input file
+   cn_fgrid    = "ocean_hgrid.nc"       ! NEMO coordinate file
+   cn_fbatin   = "BedMachineAntarctica_2020-07-15_v02.nc"                   ! nc file of bathymetry file (source)
+   ln_regin   = .false.                        ! regular coordinates input file
+   cn_varin      = "msk_oce"                          ! variable name in input file
+   cn_xdim       = "x"                            ! name of 1st dimension (x, lon ...)
+   cn_ydim       = "y"                            ! name of 2nd dimension (y, lat ...)
+   cn_lonv     = "lon"
+   cn_latv     = "lat"
+   ln_sign     = .false.                        ! .true. sign of data are change (to deals with surface elevation)
+     !jperio= 0, closed
+     !jperio= 1, cyclic east-west
+     !jperio= 2, equatorial symmetric
+     !jperio= 3, north fold with T-point pivot; jperio= 4, the same + cyclic east-west
+     !jperio= 5, north fold with F-point pivot; jperio= 6, the same + cyclic east-west
+     !jperio= 99, automatic detection based on the grid size (ORCA2/ORCA05/ORCA025)
+
+/

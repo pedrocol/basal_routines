@@ -1,0 +1,62 @@
+&naminterpo        !   parameters of the interpolation routine
+!-----------------------------------------------------------------------
+   nn_interp   = 1                              ! method 0/1 0=average 1=median 
+   nn_perio      = 4                              ! boundary condition 
+   cn_fout     = "MOM_bathy_step2.nc"      ! output filename
+   cn_varout   = "Bathymetry"                   ! variable name in input file
+   cn_fgrid    = "ocean_hgrid.nc"       ! NEMO coordinate file
+   cn_fbatin   = "BedMachineAntarctica_2020-07-15_v02.nc"                   ! nc file of bathymetry file (source)
+   ln_regin   = .false.                        ! regular coordinates input file
+   cn_varin      = "bed"                          ! variable name in input file
+   cn_xdim       = "x"                            ! name of 1st dimension (x, lon ...)
+   cn_ydim       = "y"                            ! name of 2nd dimension (y, lat ...)
+   cn_lonv     = "lon"
+   cn_latv     = "lat"
+   ln_sign     = .false.                        ! .true. sign of data are change (to deals with surface elevation)
+     !jperio= 0, closed
+     !jperio= 1, cyclic east-west
+     !jperio= 2, equatorial symmetric
+     !jperio= 3, north fold with T-point pivot; jperio= 4, the same + cyclic east-west
+     !jperio= 5, north fold with F-point pivot; jperio= 6, the same + cyclic east-west
+     !jperio= 99, automatic detection based on the grid size (ORCA2/ORCA05/ORCA025)
+/
+&namsmooth         !   parameter of the smoothing routine
+!-----------------------------------------------------------------------
+   chfilin     = 'eORCA025_bathy_step2.nc'                   ! input file
+   chfilout    = 'eORCA025_bathy_step3.nc'                   ! output file
+   nperio      = 4                              ! boundary condition
+     !jperio= 0, closed
+     !jperio= 1, cyclic east-west
+     !jperio= 2, equatorial symmetric
+     !jperio= 3, north fold with T-point pivot; jperio= 4, the same + cyclic east-west
+     !jperio= 5, north fold with F-point pivot; jperio= 6, the same + cyclic east-west
+     !jperio= 99, automatic detection based on the grid size (ORCA2/ORCA05/ORCA025)
+   cvar        = 'Bathymetry'                   ! variable name
+   npass       = 2                              ! number of pass for the filter
+   methlis     = 1                              ! smoothing method
+               ! 1: Shapiro filter
+               ! 2: Hanning filter
+               ! 3: Median filter
+   iordre      = 2                              ! shapiro filter order
+   weight      = 0.6                            ! shapiro weight
+/
+&namcombine        !   parameters of the combine routine
+!-----------------------------------------------------------------------
+   chfilin1   = "eORCA025_bathy_step4.3.nc"      ! surface data (z<= zmin)
+   cvarin1    = "Bathymetry_isf"      ! nc variable in chfilein1
+   cvmsk1     = "tmask"               ! tmask = 1 => bathy = bathy1
+   chfilin2   = "eORCA025_bathymetry_b0.1_combine.nc"    ! deep data (z>= zmax)
+   cvarin2    = "Bathymetry_isf"      ! nc variable in chfilein2
+   cvmsk2     = "tmask"               ! tmask = 1 => bathy = bathy2
+   chfilout   = "eORCA025_bathy_step5.0.nc"         ! output file
+   cvarout    = "Bathymetry_isf"      ! nc variable in chfilout
+   zmin       = 1000                  ! begining of transition zone (m)
+   zmax       = 2000                  ! end of transition zone (m)
+   nperio      = 4                    ! boundary condition
+     !jperio= 0, closed
+     !jperio= 1, cyclic east-west
+     !jperio= 2, equatorial symmetric
+     !jperio= 3, north fold with T-point pivot; jperio= 4, the same + cyclic east-west
+     !jperio= 5, north fold with F-point pivot; jperio= 6, the same + cyclic east-west
+     !jperio= 99, automatic detection based on the grid size (ORCA2/ORCA05/ORCA025)
+/
