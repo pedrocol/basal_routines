@@ -947,6 +947,8 @@ logical :: do_bitwise_exact_sum       = .true.
 integer :: id_restore_mask_ofam = -1
 logical :: restore_mask_ofam = .false.
 logical :: river_temp_ofam = .false.
+logical :: use_basal_module = .false.
+
 
 namelist /ocean_sbc_nml/ temp_restore_tscale, salt_restore_tscale, salt_restore_under_ice, salt_restore_as_salt_flux,        &
          eta_restore_tscale, zero_net_pme_eta_restore,                                                                       & 
@@ -966,6 +968,8 @@ namelist /ocean_sbc_nml/ temp_restore_tscale, salt_restore_tscale, salt_restore_
          do_ustar_correction, do_frazil_redist
 
 namelist /ocean_sbc_ofam_nml/ restore_mask_ofam, river_temp_ofam
+
+namelist /ocean_basal_tracer_nml/ use_basal_module
 
 contains
 
@@ -3658,14 +3662,16 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       endif
 
       !Pedro
-      do i=isc,iec
-        do j=jsc,jec
-           if ( Grd%yt(i,j) < -60.0 ) then
-              basal(i,j) = runoff(i,j)
-              runoff(i,j) = 0.0
-           endif
+      if (use_basal_module) then
+        do i=isc,iec
+          do j=jsc,jec
+             if ( Grd%yt(i,j) < -60.0 ) then
+                basal(i,j) = runoff(i,j)
+                runoff(i,j) = 0.0
+             endif
+          enddo
         enddo
-      enddo
+      endif
       !Pedro
 
 

@@ -24,8 +24,8 @@ module ocean_basal_tracer_mod
 !</DESCRIPTION>
 !
 !<NAMELIST NAME="ocean_basal_tracer_nml">
-!  <DATA NAME="use_this_module" TYPE="logical">
-!  For using this module.  Default use_this_module=.false.
+!  <DATA NAME="use_basal_module" TYPE="logical">
+!  For using this module.  Default use_basal_module=.false.
 !  </DATA> 
 !  <DATA NAME="test_nml" TYPE="logical">
 !  Testing input.nml vars for this moduile.  Default test_nml=.false.
@@ -151,7 +151,7 @@ integer :: id_tbasal=-1
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
 logical :: damp_coeff_3d         = .false. 
-logical :: use_this_module       = .false. 
+logical :: use_basal_module       = .false. 
 logical :: test_nml              = .false. 
 
 ! internally set for computing watermass diagnostics
@@ -189,7 +189,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_this_module, test_nml, damp_coeff_3d
+namelist /ocean_basal_tracer_nml/ use_basal_module, test_nml, damp_coeff_3d
 
 contains
 
@@ -267,7 +267,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   dtimer = 1.0/dtime
 
-  if(use_this_module) then
+  if(use_basal_module) then
       write(stdoutunit,*)'==>Note from ocean_basal_tracer_mod: Using this module.'
       Ocean_options%ocean_basal_tracer= 'Used ocean tracer basal.'
   else
@@ -392,6 +392,8 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   integer,                        intent(in)      :: index_salt
   integer :: param_choice,n
   integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
+
+  if(.not. use_basal_module) return
 
   allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
   misfkt(:,:) = 0

@@ -114,7 +114,7 @@
 /
 
 &ocean_basal_tracer_nml
-    use_this_module   = .true.
+    use_basal_module   = .true.
 /
 
 &ocean_bihgen_friction_nml
