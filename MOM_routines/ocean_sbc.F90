@@ -3660,10 +3660,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       !Pedro
       do i=isc,iec
         do j=jsc,jec
-           !if ( Grd%yt(i,j) < -60.0 ) then
-           if ( j < 42 ) then
+           if ( Grd%yt(i,j) < -60.0 ) then
               basal(i,j) = runoff(i,j)
-              !basal(i,j) = 0.0
               runoff(i,j) = 0.0
            endif
         enddo
@@ -3697,33 +3695,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              enddo
           enddo
       endif
-
-      !Pedro
-      !Consider halo
-      !do i=isc-1,iec
-      !  do j=jsc-1,jec
-      !     if ( j < 42 ) then
-      !        basal(i,j) = river(i,j) - calving(i,j)
-      !        runoff(i,j) = 0.0
-      !        river(i,j) = calving(i,j) 
-      !     endif
-      !  enddo
-      !enddo
-      !Pedro
-
-
-      !Pedro
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
 
       ! Set the temperature flux associated with the water 
       ! entering ocean from land. This flux equals to the mass 
@@ -3847,19 +3818,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       else 
 
-      !Pedro
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
           ! for cases where the land model does not carry heat flux associated with 
           ! the liquid runoff and solid calving ice. We assign a temperature to the 
           ! liquid and solid runoff.  
@@ -3918,20 +3876,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             enddo
           endif           
 
-      !Pedro
-      !Hasta aca todo bien
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !      if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
       endif     ! land_model_heat_fluxes
 
       ! compute temperature and salinity of "river" according to 
@@ -3942,22 +3886,9 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       ! We do not include such negative points when computing triver. 
       ! Also compute the salinity flux associated with liquid and solid runoff. 
 
-      !Pedro
-      !do i=isc,iec
-      !  do j=jsc,jec
-      !     if ( j < 42 ) then
-      !        T_prog(index_temp)%trunoff(i,j) = -2.0
-      !     endif
-      !  enddo
-      !enddo
-      !Pedro
-
-
       do j=jsc,jec
          do i=isc,iec
-         !Pedro
-               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
-         !Pedro
+            tmp_runoff = max(0.0,runoff(i,j))
             tmp_calving= max(0.0,calving(i,j))
             T_prog(index_temp)%triver(i,j) = Grd%tmask(i,j,1)    &
                  *(tmp_runoff *T_prog(index_temp)%trunoff(i,j)   &
@@ -3974,9 +3905,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(index_redist_heat > 0) then 
         do j=jsc,jec
            do i=isc,iec
-          !Pedro
-               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
-          !Pedro
+              tmp_runoff = max(0.0,runoff(i,j))
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_redist_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
                    *(tmp_runoff *T_prog(index_redist_heat)%trunoff(i,j)   &
@@ -3989,9 +3918,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(index_added_heat > 0) then 
         do j=jsc,jec
            do i=isc,iec
-          !Pedro
-               tmp_runoff = max(0.0,runoff(i,j)+basal(i,j))
-          !Pedro
+              tmp_runoff = max(0.0,runoff(i,j))
               tmp_calving= max(0.0,calving(i,j))
               T_prog(index_added_heat)%triver(i,j) = Grd%tmask(i,j,1)    &
                    *(tmp_runoff *T_prog(index_added_heat)%trunoff(i,j)   &
@@ -4068,21 +3995,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       endif  ! for debug_water_fluxes
 
-      !Pedro
-      !Hasta aca todo bien 2
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !      if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
-
       ! set riverdiffuse to determine where to enhance diff_cbt 
       ! inside ocean_rivermix_mod.  this option is sometimes used
       ! to help mix tracers vertically near river mouths.  
@@ -4121,22 +4033,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             melt(ii,jj)                   = -Ice_ocean_boundary%salt_flux(i,j)*ice_salt_concentration_r
          enddo
       enddo
-
-      !Pedro
-      !Hasta aca todo bien 3
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !      if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
-
 
       ! produce a zero area average of pme + river. 
       ! note that we remove the ice melt water  
@@ -4179,20 +4075,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          enddo
       endif 
 
-      !Pedro
-      !Hasta aca todo bien 4
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-      
       ! when have a nonzero salinity of runoff, then there is a 
       ! nonzero salt flux (kg/(m^2*sec)) into the ocean with the runoff. 
       do j=jsc,jec
@@ -4268,78 +4150,11 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
   endif    ! end of long if-block for if(use_waterflux) 
 
-  !Pedro
-  !Hasta aca todo bien 5
-  !do j=jsc,jec
-  !  do i=isc,iec
-  !     if ( j < 42 ) then
-  !        runoff(i,j) = runoff(i,j) + basal(i,j)
-  !        river(i,j) = river(i,j) + basal(i,j)
-  !     endif
-  !  enddo
-  !enddo
-  !basal(:,:) = 0.0
-  !Pedro
-
-  !Pedro
-  !do i=isc,iec
-  !   do j=jsc,jec
-  !      if ( Grd%yt(i,j) < -60 ) then
-  !         runoff(i,j) = runoff(i,j) + basal(i,j)
-  !         river(i,j) = river(i,j) + basal(i,j)
-  !      endif
-  !   enddo
-  !enddo
-  !basal(:,:) = 0.0
-  !Pedro
-
-
-
   call mpp_update_domains(pme(:,:)  , Dom%domain2d)
   call mpp_update_domains(river(:,:), Dom%domain2d)
   !Pedro
   call mpp_update_domains(basal(:,:), Dom%domain2d)
   !Pedro
-
-    !Pedro
-  !do i=isc,iec
-  !   do j=jsc,jec
-  !      if ( Grd%yt(i,j) < -60 ) then
-  !         basal(i,j)  = river(i,j)
-  !         runoff(i,j) = 0.0
-  !         river(i,j)  = 0.0
-  !      endif
-  !   enddo
-  !enddo
-  !Pedro
-
-
-  !Pedro
-  !do j=jsc,jec
-  !   do i=isc,iec
-  !      if ( j < 42 ) then
-  !         basal(i,j)  = river(i,j)
-  !         runoff(i,j) = 0.0
-  !         river(i,j)  = 0.0
-  !      endif
-  !   enddo
-  !enddo
-  !Pedro
-
-
-  !Pedro
-  !do j=jsc,jec
-  !  do i=isc,iec
-  !     if ( j < 42 ) then
-  !        runoff(i,j) = runoff(i,j) + basal(i,j)
-  !        river(i,j) = river(i,j) + basal(i,j)
-  !     endif
-  !  enddo
-  !enddo
-  !basal(:,:) = 0.0
-  !Pedro
-
-
 
   !---------------surface pressure from ice and atmos-----------
   !
@@ -4604,21 +4419,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
      enddo
   enddo
 #endif
-
-      !Pedro
-      !Hasta aca todo bien 6
-      !do j=jsc,jec
-      !  do i=isc,iec
-      !     if ( j < 42 ) then
-      !        runoff(i,j) = runoff(i,j) + basal(i,j)
-      !        river(i,j) = river(i,j) + basal(i,j)
-      !     endif
-      !  enddo
-      !enddo
-      !basal(:,:) = 0.0
-      !Pedro
-
-
 
   !--------compute surface tracer fluxes from tracer packages------------------- 
   !

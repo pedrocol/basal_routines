@@ -1,5 +1,4 @@
 module ocean_basal_tracer_mod
-
 !</CONTACT>
 !
 !<CONTACT EMAIL="paul.spence@gmail.com"> Paul Spence
@@ -146,6 +145,8 @@ integer :: id_tform_salt_pbl_ba_pr_on_nrho =-1
 
 integer :: id_eta_tend_basalmix        =-1
 integer :: id_eta_tend_basalmix_glob   =-1
+
+integer :: id_tbasal=-1
 
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
@@ -304,10 +305,13 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   enddo
 
   ! register diagnostic outputs
-  id_basal_fwflx = register_diag_field('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),&
-       Time%model_time, 'mass flux of liquid basal meltwater entering ocean ',    &
-       '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),     &
-       standard_name='water_flux_into_sea_water_from_basal_melting')
+  id_tbasal = register_diag_field ('ocean_model','temp_basal',Grd%tracer_axes(1:2),          &
+              Time%model_time, 'temperature of basal melt runoff entering the ocean',        &
+              'degC' , missing_value=missing_value,range=(/-1.e4,1.e4/))
+  id_basal_fwflx = register_diag_field ('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),   &
+              Time%model_time, 'mass flux of liquid basal meltwater entering ocean ',        &
+              '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
+              standard_name='water_flux_into_sea_water_from_basal_melting')
   
   allocate (id_basal_tend(num_prog_tracers))
   id_basal_tend = -1
@@ -404,15 +408,6 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   ELSEIF ( param_choice == 3 ) THEN
     !Do nothing for the moment
   ENDIF
-
-  do n=1,num_prog_tracers
-     if(id_basalfw(n) > 0) then
-        call diagnose_3d(Time, Grd, id_basalfw(n), T_prog(n)%wrk1(:,:,:)*T_prog(n)%conversion)
-     endif
-     if(id_basalmix_on_nrho(n) > 0) then
-        call diagnose_3d_rho(Time, Dens, id_basalmix_on_nrho(n), T_prog(n)%wrk1*T_prog(n)%conversion)
-     endif
-  enddo
 
   call watermass_diag_basal(Time, Dens, T_prog, basal, &
   T_prog(index_temp)%wrk1(:,:,:),T_prog(index_salt)%wrk1(:,:,:), misfkt, misfkb)
@@ -593,11 +588,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
               tbasal_sum = 0.0
 
               if ( trim(T_prog(n)%name) == 'temp' ) then
-                 sal = T_prog(index_salt)%field(i,j,k,tau)
-                 !sal = 0.0
+                 !sal = T_prog(index_salt)%field(i,j,k,tau)
+                 sal = 0.0
                  press = Dens%pressure_at_depth(i,j,k)
                  call frz_preteos10(tfreezing, press, sal)
-                 tbasal = tfreezing
+                 tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
               endif
               if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
               !tbasal = T_prog(n)%triver(i,j)
@@ -661,6 +656,33 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
         endif ! fwfisf > 0
      enddo !i
   enddo !j
+
+  !!Diags
+  if (id_tbasal > 0) then !basal temp
+     wrk1_2d=0.0
+     do j=jsc,jec
+        do i=isc,iec
+           if ( fwfisf(i,j) /= 0.0 ) then
+              wrk1_2d(i,j) = T_prog(index_temp)%tbasal(i,j)
+           endif
+        enddo
+     enddo
+     call diagnose_2d(Time, Grd, id_tbasal, wrk1_2d(:,:))
+  endif
+
+  if (id_basal_fwflx > 0) then !basal flux
+     ! basal entering the ocean (kg/m^3)*(m/s)
+     call diagnose_3d(Time, Grd, id_basal_fwflx, basal3d(:,:,:))
+  endif
+
+  do n=1,num_prog_tracers
+     if(id_basalfw(n) > 0) then !temp/salt flux
+        call diagnose_3d(Time, Grd, id_basalfw(n), T_prog(n)%wrk1(:,:,:)*T_prog(n)%conversion)
+     endif
+     if(id_basalmix_on_nrho(n) > 0) then
+        call diagnose_3d_rho(Time, Dens, id_basalmix_on_nrho(n), T_prog(n)%wrk1*T_prog(n)%conversion)
+     endif
+  enddo
 
   deallocate ( misfzt, misfzb )
   deallocate ( fwfisf,   qisf )
