@@ -3040,7 +3040,7 @@ end subroutine watermass_diag_init
 !
 subroutine vert_mix_coeff(Time, Thickness, Velocity, T_prog,   &
                           T_diag, Dens, swflx, sw_frac_zt, pme,&
-                          river, basal, visc_cbu, visc_cbt,    &
+                          river, visc_cbu, visc_cbt,    &
                           diff_cbt, hblt_depth, do_wave)
 
   type(ocean_time_type),          intent(in)    :: Time
@@ -3053,7 +3053,6 @@ subroutine vert_mix_coeff(Time, Thickness, Velocity, T_prog,   &
   real, dimension(isd:,jsd:,:),   intent(in)    :: sw_frac_zt
   real, dimension(isd:,jsd:),     intent(in)    :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: river
-  real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
   real, dimension(isd:,jsd:,:),   intent(inout) :: visc_cbu
   real, dimension(isd:,jsd:,:),   intent(inout) :: visc_cbt
   real, dimension(isd:,jsd:,:,:), intent(inout) :: diff_cbt
@@ -3097,7 +3096,7 @@ subroutine vert_mix_coeff(Time, Thickness, Velocity, T_prog,   &
   elseif(MIX_SCHEME == VERTMIX_KPP_MOM4P1) then 
     call mpp_clock_begin(id_clock_vert_kpp_mom4p1)
     call vert_mix_kpp_mom4p1(aidif, Time, Thickness, Velocity, T_prog, T_diag, Dens,    &
-                      swflx, sw_frac_zt, pme, river, basal, visc_cbu, diff_cbt, diff_cbt_conv, & 
+                      swflx, sw_frac_zt, pme, river, visc_cbu, diff_cbt, diff_cbt_conv, & 
                       hblt_depth, do_wave) !Pedro
     ! since this scheme is frozen, we do not compute visc_cbt. 
     ! for vertical reynolds diagnostics, we set  
