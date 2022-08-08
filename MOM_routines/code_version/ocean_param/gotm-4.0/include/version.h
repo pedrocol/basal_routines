@@ -1,1 +1,0 @@
-#define RELEASE "CVS12.03.09"
