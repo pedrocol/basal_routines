@@ -19,6 +19,7 @@ cp ocean_vert_gotm.F90 $root/ocean_param/vertical/
 cp ocean_vert_kpp_mom4p1.F90 $root/ocean_param/vertical/
 cp ocean_vert_mix.F90 $root/ocean_param/vertical/
 
+root=/home/552/pc5520/access-om2/src/mom/src/mom5/
 diff ocean_advection_velocity.F90 $root/ocean_core/ocean_advection_velocity.F90
 diff ocean_barotropic.F90 $root/ocean_core/ocean_barotropic.F90
 diff ocean_basal_tracer.F90 $root/ocean_param/sources/ocean_basal_tracer.F90
