@@ -14,7 +14,7 @@ module ocean_basal_tracer_mod
 !<DESCRIPTION>
 ! This module applies a 3D fresh water flux, presumably from basal 
 ! melting (but the source of the FW is arbitrary). The code is based
-! on ocean_sponges_tracer.F90. The basal meltwater input file is from 
+! on ocean_rivermix.F90. The basal meltwater input file is from 
 ! Merino et al., 2018: https://doi.org/10.1016/j.ocemod.2017.12.006
 ! It should apply to both salt and temp tracers. The water
 ! can occur at any location and with any distribution in the domain.  
@@ -24,8 +24,8 @@ module ocean_basal_tracer_mod
 !</DESCRIPTION>
 !
 !<NAMELIST NAME="ocean_basal_tracer_nml">
-!  <DATA NAME="use_basal_module" TYPE="logical">
-!  For using this module.  Default use_basal_module=.false.
+!  <DATA NAME="use_this_module" TYPE="logical">
+!  For using this module.  Default use_this_module=.false.
 !  </DATA> 
 !  <DATA NAME="test_nml" TYPE="logical">
 !  Testing input.nml vars for this moduile.  Default test_nml=.false.
@@ -56,6 +56,7 @@ use axis_utils_mod,           only: frac_index, nearest_index
 use ocean_types_mod,          only: ocean_time_type, ocean_time_steps_type, ocean_options_type
 use ocean_util_mod,           only: diagnose_2d, diagnose_3d, diagnose_sum
 use ocean_tracer_util_mod,    only: diagnose_3d_rho
+use ocean_tempsalt_mod,       only: contemp_from_pottemp
 
 implicit none
 
@@ -89,6 +90,7 @@ character (len=128) :: tagname = '$Name: tikal $'
 logical :: used
 integer, dimension(:), allocatable :: id_basal_tend
 integer :: id_basal_fwflx        =-1
+integer :: id_basal_fwflx2d        =-1
 
 integer, dimension(:), allocatable :: id_basalfw
 integer, dimension(:), allocatable :: id_basalmix_on_nrho
@@ -312,6 +314,11 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
               Time%model_time, 'mass flux of liquid basal meltwater entering ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
               standard_name='water_flux_into_sea_water_from_basal_melting')
+  id_basal_fwflx2d = register_diag_field ('ocean_model','basal_fwflx2d', Grd%tracer_axes(1:2),   &
+              Time%model_time, '2d mass flux of liquid basal meltwater entering ocean ',        &
+              '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
+              standard_name='water_flux_into_sea_water_from_basal_melting')
+
   
   allocate (id_basal_tend(num_prog_tracers))
   id_basal_tend = -1
@@ -360,7 +367,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
   call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
   call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
-  call diagnose_3d(Time, Grd, id_basal_fwflx,wrk1(:,:,:))
+  !call diagnose_3d(Time, Grd, id_basal_fwflx,wrk1(:,:,:))
 
   call watermass_diag_init_ba(Time, Dens)
 
@@ -443,7 +450,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real, dimension(isd:,jsd:,:),   intent(inout)  :: basal3d
   real    :: dtime
   integer :: taum1, tau, taup1
-  integer :: i, j, k, n, nz
+  integer :: i, j, k, n, nz, nn
   real, allocatable, dimension(:,:)    :: misfzt,misfzb ! Top and bottom input depths
   real, allocatable, dimension(:,:) :: fwfisf        ! fresh water flux from the isf (fwfisf <0 mean melting) [Kg/m2/s]
   real, allocatable, dimension(:,:) :: qisf          ! heat flux
@@ -456,7 +463,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real, allocatable, dimension(:,:,:) :: risf_tsc_b , risf_tsc ! before and now T & S isf contents [K.m/s & PSU.m/s]
   real, allocatable, dimension(:,:,:) :: zt_frz3d        ! Freezing point temperature
   real, allocatable, dimension(:,:,:,:) :: risf_tsc_3d_b , risf_tsc_3d ! before and now T & S isf contents [K.m/s & PSU.m/s]
-  integer ::   ikt, ikb, import_file, method, firstlev     ! local integers
+  integer ::   ikt, ikb, import_file, method, firstlev, gade_line     ! local integers
   integer :: nvars
   !rivermix
   real    :: depth, thkocean
@@ -469,6 +476,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   integer :: stdoutunit,stdlogunit
   character(len=128) :: name
   real    :: sal, press
+  real    :: c_p = 3974.0
+  real    :: L_f = 3.34*10**5
   stdoutunit=stdout();stdlogunit=stdlog()
 !#######################################################################
 
@@ -538,12 +547,14 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   else
     misfzt(:,:)=100
     misfzb(:,:)=400
+    fwfisf(:,:) = 0.0
     fwfisf(:,:) = basal_i(:,:)
   endif
 
   !For this test we store the fw flux in basal_i to copy it later to river
   !basal_i(:,:) = fwfisf(:,:)
   !For this first test we use the original river values
+  fwfisf(:,:) = 0.0
   fwfisf(:,:) = basal_i(:,:)
 
   ! Need to reinitialise wrk2 here due to limiting of temperature.
@@ -555,11 +566,17 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
         if (fwfisf(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
 
-           if (fwfisf(i,j) > 0.0 .and. misfzt(i,j) == 0) then
-              misfzt(i,j)=100
+           if ( misfzt(i,j) == 0 .or. misfzb(i,j) == 0) then
+              misfzt(i,j)=200
               misfzb(i,j)=400
            endif
-
+           if ( misfzb(i,j) < misfzt(i,j) ) then
+              misfzt(i,j)=200
+              misfzb(i,j)=400
+           endif
+           
+           !Test like BG03
+           !misfzb(:,:) = misfzt(:,:) + 50
 
         ! the array "river" contains the volume rate (m/s) or mass
         ! rate (kg/m2/sec) of fluid with tracer 
@@ -584,76 +601,132 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            enddo
 
            do n=1,num_prog_tracers
+              gade_line = 0
 
-              zextra=0.0
+              if (gade_line == 0 ) then
+                 if ( n == 1 ) then
+                    nn = index_salt       
+                 elseif ( n == 2 ) then
+                    nn = index_temp
+                 else
+                    nn = n
+                 end if
 
-              tbasal_sum = 0.0
+                 tbasal = 0.0
+                 tbasal_sum = 0.0
 
-              if ( trim(T_prog(n)%name) == 'temp' ) then
-                 !sal = T_prog(index_salt)%field(i,j,k,tau)
-                 sal = 0.0
-                 press = Dens%pressure_at_depth(i,j,k)
-                 call frz_preteos10(tfreezing, press, sal)
-                 tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
-              endif
-              if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
-              !tbasal = T_prog(n)%triver(i,j)
+                 if ( trim(T_prog(nn)%name) /= 'temp' ) then !salt and age
+                    
+                    do k=misfkt(i,j),misfkb(i,j)
+                       basal3d(i,j,k) = fwfisf(i,j)*delta(k)
+                       zinsert = fwfisf(i,j)*dtime*delta(k)
+                       tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
+                                      (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                       tbasal_sum = tbasal_sum + tbasal*delta(k)
+                    enddo
 
-              method = 1
+                    T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
-              if ( method == 0 ) then
+                    do k=firstlev,misfkb(i,j)
+                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
+                    enddo
 
-                 do k=misfkb(i,j),misfkt(i,j),-1
+                 else    !temp
 
-                    tracernew(k) = 0.0
+                    do k=misfkt(i,j),misfkb(i,j)
+                       tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
+                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
+                       zinsert = fwfisf(i,j)*dtime*delta(k)
+                       tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
+                       tbasal_sum = tbasal_sum + tbasal*delta(k)
+                    enddo
+                    firstlev = misfkt(i,j)
+        
+                    T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
-                    if (k.eq.misfkb(i,j)) then
-                       tracerextra=0.0
-                    else
-                       tracerextra = tracernew(k+1)
-                    endif
+                    do k=firstlev,misfkb(i,j)
+                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
+                    enddo
+                 endif !tracers
 
-                    zinsert = fwfisf(i,j)*dtime*delta(k)
-                    tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
-                                   tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                    basal3d(i,j,k) = ( zextra + zinsert ) / ( dtime*delta(k) ) !Equivalente basal flux
-                    zextra=zextra+zinsert
-
-                    tbasal_sum = tbasal_sum + tbasal*delta(k)
-                 enddo
-
-                 k=misfkt(i,j) !Treatment at the first level
-                 T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
-                                         T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
-
-                 firstlev = misfkt(i,j)+1
-              elseif ( method == 1 ) then
+                 !Update tendency
                  do k=misfkt(i,j),misfkb(i,j)
-                    basal3d(i,j,k) = fwfisf(i,j)*delta(k)
-                    zinsert = fwfisf(i,j)*dtime*delta(k)
-                    tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
-                                   (Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                    tbasal_sum = tbasal_sum + tbasal*delta(k)
+                    T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
                  enddo
-                 firstlev = misfkt(i,j)                 
-              endif !method
-              
-              T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
+           
+              elseif (gade_line == 1 ) then
 
-              do k=firstlev,misfkb(i,j)
-                 T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 
-              enddo
+                 zextra=0.0
 
-              if(debug_all_in_top_cell) then
-                  k=1
-                  T_prog(n)%wrk1(i,j,:) = 0.0
-                  T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*fwfisf(i,j)*T_prog(n)%triver(i,j)
-              endif
+                 tbasal_sum = 0.0
 
-              do k=misfkt(i,j),misfkb(i,j)
-                 T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
-              enddo
+                 if ( trim(T_prog(n)%name) == 'temp' ) then
+                    sal = T_prog(index_salt)%field(i,j,k,tau)
+                    !sal = 0.0
+                    press = Dens%pressure_at_depth(i,j,k)
+                    call frz_preteos10(tfreezing, press, sal)
+                    !tbasal = tfreezing
+                    tfreezing = contemp_from_pottemp(sal,tfreezing)
+                    tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
+                 endif
+                 if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
+                 !tbasal = T_prog(n)%triver(i,j)
 
+                 method = 1
+
+                 if ( method == 0 ) then
+ 
+                    do k=misfkb(i,j),misfkt(i,j),-1
+  
+                       tracernew(k) = 0.0
+
+                       if (k.eq.misfkb(i,j)) then
+                          tracerextra=0.0
+                       else
+                          tracerextra = tracernew(k+1)
+                       endif
+
+                       zinsert = fwfisf(i,j)*dtime*delta(k)
+                       tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
+                                      tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                       basal3d(i,j,k) = ( zextra + zinsert ) / ( dtime*delta(k) ) !Equivalente basal flux
+                       zextra=zextra+zinsert
+
+                       tbasal_sum = tbasal_sum + tbasal*delta(k)
+                    enddo
+
+                    k=misfkt(i,j) !Treatment at the first level
+                    T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
+                                            T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+
+                    firstlev = misfkt(i,j)+1
+                 elseif ( method == 1 ) then
+                    do k=misfkt(i,j),misfkb(i,j)
+                       basal3d(i,j,k) = fwfisf(i,j)*delta(k)
+                       zinsert = fwfisf(i,j)*dtime*delta(k)
+                       tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
+                                      (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                       tbasal_sum = tbasal_sum + tbasal*delta(k)
+                    enddo
+                    firstlev = misfkt(i,j)                 
+                 endif !method
+
+                 T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
+  
+                 do k=firstlev,misfkb(i,j)
+                    T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 
+                 enddo
+
+                 if(debug_all_in_top_cell) then
+                     k=1
+                     T_prog(n)%wrk1(i,j,:) = 0.0
+                     T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*fwfisf(i,j)*T_prog(n)%triver(i,j)
+                 endif
+
+                 do k=misfkt(i,j),misfkb(i,j)
+                    T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
+                 enddo
+              endif !gade line    
            enddo !n
         endif ! fwfisf > 0
      enddo !i
@@ -676,6 +749,12 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
      ! basal entering the ocean (kg/m^3)*(m/s)
      call diagnose_3d(Time, Grd, id_basal_fwflx, basal3d(:,:,:))
   endif
+
+  if (id_basal_fwflx2d> 0) then !basal flux
+     ! basal entering the ocean (kg/m^3)*(m/s)
+     call diagnose_2d(Time, Grd, id_basal_fwflx2d, fwfisf(:,:))
+  endif
+
 
   do n=1,num_prog_tracers
      if(id_basalfw(n) > 0) then !temp/salt flux
