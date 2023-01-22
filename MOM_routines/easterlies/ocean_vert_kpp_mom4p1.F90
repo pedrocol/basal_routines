@@ -994,8 +994,8 @@ end subroutine ocean_vert_kpp_mom4p1_init
 ! </DESCRIPTION>
 !
 subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag, Dens, &
-                                swflx, sw_frac_zt, pme, river, basal, visc_cbu, &
-                                diff_cbt, diff_cbt_conv, hblt_depth, do_wave)
+                                swflx, sw_frac_zt, pme, river, visc_cbu, diff_cbt,      &
+                                diff_cbt_conv, hblt_depth, do_wave)
 
   real,                            intent(in)    :: aidif
   type(ocean_time_type),           intent(in)    :: Time
@@ -1008,9 +1008,6 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
   real, dimension(isd:,jsd:,:),    intent(in)    :: sw_frac_zt
   real, dimension(isd:,jsd:),      intent(in)    :: pme
   real, dimension(isd:,jsd:),      intent(in)    :: river
-  real, dimension(isd:,jsd:),      intent(in)    :: basal
-  !Pedro
-  !Pedro
   real, dimension(isd:,jsd:),      intent(inout) :: hblt_depth
   real, dimension(isd:,jsd:,:),    intent(inout) :: visc_cbu
   real, dimension(isd:,jsd:,:,:),  intent(inout) :: diff_cbt
@@ -1181,9 +1178,8 @@ subroutine vert_mix_kpp_mom4p1 (aidif, Time, Thickness, Velocity, T_prog, T_diag
                   do i=isd,ied
                      wsfc(n)%wsfc(i,j) = (T_prog(n)%stf(i,j) -                          &
                           pme(i,j)  *(T_prog(n)%field(i,j,1,tau)-T_prog(n)%tpme(i,j)) - &
-                          river(i,j)*(T_prog(n)%field(i,j,1,tau)-T_prog(n)%triver(i,j)) - &
-                          basal(i,j)*(T_prog(n)%field(i,j,1,tau)-T_prog(n)%triver(i,j)) &
-                          )*rho0r*Grd%tmask(i,j,1) !Pedro
+                          river(i,j)*(T_prog(n)%field(i,j,1,tau)-T_prog(n)%triver(i,j)) &
+                          )*rho0r*Grd%tmask(i,j,1)
                   enddo
                enddo
             enddo

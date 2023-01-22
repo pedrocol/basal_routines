@@ -556,6 +556,9 @@ integer :: id_calving_override = -1
 integer :: id_fprec_override   = -1
 integer :: id_evap_override    = -1
 
+!Pedro
+integer :: calv_id    = -1
+!Pedro
 
 ! for non-constant latent heats 
 real, allocatable, dimension(:,:) :: latent_heat_vapor
@@ -1191,6 +1194,13 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
       write(stdoutunit,*) &
       '==>Note from ocean_sbc_mod: overriding mass contribution from fprec, but not its latent heat contribution.'
   endif 
+
+
+  !Pedro
+  filename = 'INPUT/ocean_month_output_GPC010_calving_365_final.nc'
+  calv_id = init_external_field(filename,'calving',domain=Domain%domain2d)
+
+  !Pedro
 
   ! evaporation > 0 means mass enters ocean.
   ! units kg/(m^2 sec)
@@ -3288,6 +3298,16 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real    :: active_cells, smftu, smftv
 
   integer :: stdoutunit 
+  logical :: damp_coeff_3d         = .false.
+  logical :: use_basal_module       = .true.
+  logical :: test_nml              = .false.
+
+
+
+!  namelist /ocean_basal_tracer_nml/ use_basal_module
+  namelist /ocean_basal_tracer_nml/ use_basal_module, test_nml, damp_coeff_3d
+
+
   stdoutunit=stdout() 
 
   tau   = Time%tau
@@ -3603,14 +3623,34 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       endif
 
       !Pedro
-      do i=isc,iec
-        do j=jsc,jec
-           if ( Grd%yt(i,j) < -60.0 ) then
-              basal(i,j) = runoff(i,j)
-              runoff(i,j) = 0.0
-           endif
+      if(use_basal_module) then
+        !import calving field
+        if (calv_id < 1) then
+          call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+        endif
+        wrk1  = 0.0
+       ! get basal value for current time
+       call time_interp_external(calv_id, Time%model_time, wrk1)
+       do j=jsd,jed
+         do i=isd,ied
+            calving(i,j)=wrk1(i,j,1)
+         enddo
+       enddo
+
+
+        do i=isc,iec
+          do j=jsc,jec
+             if ( Grd%yt(i,j) < -60.0 ) then
+                basal(i,j) = runoff(i,j) - calving(i,j)
+                runoff(i,j) = calving(i,j)
+                calving(i,j) = 0
+                if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
+             else
+                calving(i,j) = 0
+             endif
+          enddo
         enddo
-      enddo
+      endif
       !Pedro
 
 
@@ -3751,7 +3791,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                   T_prog(index_temp)%trunoff(i, j) &
                     = max(runoff_temp_min, data(i, j))
                   T_prog(index_temp)%tcalving(i, j) &
-                    = T_prog(index_temp)%field(i, j, 1, tau)
+                    = max(runoff_temp_min, data(i, j)) !Pedro
+                    != T_prog(index_temp)%field(i, j, 1, tau)
                   T_prog(index_temp)%runoff_tracer_flux(i, j) &
                     = Grd%tmask(i, j, 1) * T_prog(index_temp)%trunoff(i,j) &
                         * runoff(i, j)
@@ -3775,7 +3816,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 T_prog(index_temp)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau))
                 T_prog(index_temp)%tcalving(i,j) = &
-                   T_prog(index_temp)%field(i,j,1,tau)
+                   max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau)) !Pedro
+                   !T_prog(index_temp)%field(i,j,1,tau)
                 T_prog(index_temp)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%trunoff(i,j)*runoff(i,j)
                 T_prog(index_temp)%calving_tracer_flux(i,j)= &
@@ -3792,7 +3834,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                  T_prog(index_redist_heat)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_redist_heat)%field(i,j,1,tau))
                  T_prog(index_redist_heat)%tcalving(i,j) = &
-                   T_prog(index_redist_heat)%field(i,j,1,tau)
+                   max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau)) !Pedro
+                   !T_prog(index_redist_heat)%field(i,j,1,tau)
                  T_prog(index_redist_heat)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_redist_heat)%calving_tracer_flux(i,j)= &
@@ -3810,7 +3853,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                  T_prog(index_added_heat)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_added_heat)%field(i,j,1,tau))
                  T_prog(index_added_heat)%tcalving(i,j) = &
-                   T_prog(index_added_heat)%field(i,j,1,tau)
+                   max(runoff_temp_min,T_prog(index_added_heat)%field(i,j,1,tau)) !Pedro
+                   !T_prog(index_added_heat)%field(i,j,1,tau)
                  T_prog(index_added_heat)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_added_heat)%calving_tracer_flux(i,j)= &
@@ -3947,8 +3991,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          do j=jsc,jec
             do i=isc,iec
             !Pedro
-               T_prog(n)%riverdiffuse(i,j) = basal(i,j) + river(i,j)
-            !  T_prog(n)%riverdiffuse(i,j) = river(i,j) 
+            T_prog(n)%riverdiffuse(i,j) = river(i,j) 
             !Pedro
             enddo
          enddo

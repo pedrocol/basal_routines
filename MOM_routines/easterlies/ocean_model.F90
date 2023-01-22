@@ -1673,7 +1673,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_vmix)    
        call vert_mix_coeff(Time, Thickness, Velocity, T_prog(1:num_prog_tracers),&
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
-            river, basal, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave) !Pedro
+            river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave) !Pedro
        call mpp_clock_end(id_vmix)
 
        ! compute ocean tendencies from tracer packages
