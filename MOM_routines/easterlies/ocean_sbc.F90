@@ -558,6 +558,7 @@ integer :: id_evap_override    = -1
 
 !Pedro
 integer :: calv_id    = -1
+integer :: calv2_id    = -1
 !Pedro
 
 ! for non-constant latent heats 
@@ -791,6 +792,7 @@ real, dimension(isd:ied,jsd:jed) :: restore_mask  ! mask for setting regions tha
 real, dimension(isd:ied,jsd:jed) :: runoff        ! mass flux of liquid river runoff 
 real, dimension(isd:ied,jsd:jed) :: ideal_runoff  ! mass flux of liquid river runoff obtained from read-in file  
 real, dimension(isd:ied,jsd:jed) :: calving       ! mass flux of calving land ice into ocean 
+real, dimension(isd:ied,jsd:jed) :: calving2       ! mass flux of calving land ice into ocean 
 real, dimension(isd:ied,jsd:jed) :: ideal_calving ! mass flux of calving land ice obtained from read-in file 
 real, dimension(isd:ied,jsd:jed) :: rhosfc_inv    ! surface ocean specific volume (m^3/kg) #
 real, dimension(isd:ied,jsd:jed) :: alphasfc      ! surface thermal expansion coefficient (1/deg C) 
@@ -808,6 +810,7 @@ real, allocatable, dimension(:,:) :: restore_mask  ! mask for setting regions th
 real, allocatable, dimension(:,:) :: runoff        ! mass flux of liquid river runoff  
 real, allocatable, dimension(:,:) :: ideal_runoff  ! mass flux of liquid river runoff obtained from read-in file   
 real, allocatable, dimension(:,:) :: calving       ! mass flux of calving land ice into ocean 
+real, allocatable, dimension(:,:) :: calving2       ! mass flux of calving land ice into ocean 
 real, allocatable, dimension(:,:) :: ideal_calving ! mass flux of calving land ice obtained from read-in file
 real, allocatable, dimension(:,:) :: rhosfc_inv    ! surface ocean specific volume (m^3/kg) 
 real, allocatable, dimension(:,:) :: alphasfc      ! surface thermal expansion coefficient (1/deg C) 
@@ -1040,6 +1043,7 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   allocate(runoff(isd:ied,jsd:jed))
   allocate(ideal_runoff(isd:ied,jsd:jed))
   allocate(calving(isd:ied,jsd:jed))
+  allocate(calving2(isd:ied,jsd:jed))
   allocate(ideal_calving(isd:ied,jsd:jed))
   allocate(rhosfc_inv(isd:ied,jsd:jed))
   allocate(alphasfc(isd:ied,jsd:jed))
@@ -1054,6 +1058,7 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   restore_mask(:,:) = Grid%tmask(:,:,1)
   runoff            = 0.0
   calving           = 0.0
+  calving2           = 0.0
   ideal_runoff      = 0.0
   ideal_calving     = 0.0
   rhosfc_inv        = 0.0
@@ -1199,6 +1204,8 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   !Pedro
   filename = 'INPUT/ocean_month_output_GPC010_calving_365_final.nc'
   calv_id = init_external_field(filename,'calving',domain=Domain%domain2d)
+  filename = 'INPUT/Merino_formom5.nc' !iceberg data
+  calv2_id = init_external_field(filename,'calving',domain=Domain%domain2d)
 
   !Pedro
 
@@ -3636,14 +3643,25 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             calving(i,j)=wrk1(i,j,1)
          enddo
        enddo
-
+       !Import iceberg field
+        if (calv2_id < 1) then
+          call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+        endif
+        wrk1  = 0.0
+       ! get basal value for current time
+       call time_interp_external(calv2_id, Time%model_time, wrk1)
+       do j=jsd,jed
+         do i=isd,ied
+            calving2(i,j)=wrk1(i,j,1)
+         enddo
+       enddo
 
         do i=isc,iec
           do j=jsc,jec
              if ( Grd%yt(i,j) < -60.0 ) then
                 basal(i,j) = runoff(i,j) - calving(i,j)
-                runoff(i,j) = calving(i,j)
-                calving(i,j) = 0
+                runoff(i,j) = calving2(i,j)
+                calving(i,j) = 0.0
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
              else
                 calving(i,j) = 0

@@ -624,6 +624,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                                       (Thickness%rho_dzt(i,j,k,tau)+zinsert)
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
                     enddo
+                    firstlev = misfkt(i,j)
 
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
