@@ -309,7 +309,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   ! register diagnostic outputs
   id_tbasal = register_diag_field ('ocean_model','temp_basal',Grd%tracer_axes(1:2),          &
               Time%model_time, 'temperature of basal melt runoff entering the ocean',        &
-              'degC' , missing_value=missing_value,range=(/-1.e4,1.e4/))
+              'degC' , missing_value=missing_value,range=(/-1.e10,1.e10/))
   id_basal_fwflx = register_diag_field ('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),   &
               Time%model_time, 'mass flux of liquid basal meltwater entering ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
