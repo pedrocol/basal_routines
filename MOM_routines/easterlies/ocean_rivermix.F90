@@ -941,10 +941,10 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
                        triver_sum = triver_sum + triver*delta(k)
                     enddo
 
-                    T_prog(nn)%triver(i,j) = triver_sum !average for ocean_diagnostics
+                    !T_prog(nn)%triver(i,j) = triver_sum !average for ocean_diagnostics
                     !Update variables (normally calculated at ocean_sbc)
-                    T_prog(nn)%trunoff(i,j) = triver_sum
-                    T_prog(nn)%runoff_tracer_flux(i,j)=Grd%tmask(i,j,1)*T_prog(nn)%trunoff(i,j)*river(i, j)
+                    !T_prog(nn)%trunoff(i,j) = triver_sum
+                    !T_prog(nn)%runoff_tracer_flux(i,j)=Grd%tmask(i,j,1)*T_prog(nn)%trunoff(i,j)*river(i, j)
 
                     do k=1,nz
                        T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
