@@ -338,10 +338,6 @@ integer :: id_wdian_salt_pbl_cl_pr_on_nrho =-1
 integer :: id_tform_salt_pbl_cl_pr         =-1
 integer :: id_tform_salt_pbl_cl_pr_on_nrho =-1
 
-!Pedro
-    integer, dimension(:), allocatable :: id_runoff_ts_flux
-    integer :: id_runoff_ts=-1
-!Pedro
 
 integer :: unit=6       ! processor zero writes to unit 6
 
@@ -398,7 +394,6 @@ contains
     integer :: io_status, ioun, ierr
 
     integer :: stdoutunit,stdlogunit 
-
     stdoutunit=stdout();stdlogunit=stdlog() 
 
     if ( module_is_initialized ) then 
@@ -593,32 +588,6 @@ contains
        endif
     enddo
 
-
-    !Pedro
-    allocate (id_runoff_ts_flux(num_prog_tracers))
-    id_runoff_ts_flux   = -1
-    do n=1,num_prog_tracers
-       if(T_prog(n)%name == 'temp') then
-          id_runoff_ts_flux(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_hflux_runoff_gade', &
-                           Grd%tracer_axes(1:3), Time%model_time,                                 &
-                           'cp*runoff*rho_dzt*temp', 'Watt/m^2',                                &
-                           missing_value=missing_value, range=(/-1.e10,1.e10/))
-       else
-          id_runoff_ts_flux(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_sflux_runoff_gade', &
-                           Grd%tracer_axes(1:3), Time%model_time,                                 &
-                           'runoff*rho_dzt*tracer for '//trim(T_prog(n)%name),                  &
-                           trim(T_prog(n)%flux_units),                                            &
-                           missing_value=missing_value, range=(/-1.e10,1.e10/))
-      endif
-    enddo 
-
-    id_runoff_ts = register_diag_field ('ocean_model','temp_runoff_gade',Grd%tracer_axes(1:2),          &
-                Time%model_time, 'temperature of runoff entering the ocean - gade',        &
-                'degC' , missing_value=missing_value,range=(/-1.e10,1.e10/))
-    !Pedro
-
-
-
     if(debug_all_in_top_cell) then 
         call mpp_error(NOTE, &
         '==>Note: in rivermix module, debug_all_in_top_cell=.true., so placing all river water to top cell.')
@@ -805,16 +774,12 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
   type(ocean_prog_tracer_type),   intent(inout) :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(in)    :: river
 
-  integer :: i, j, k, n, nz, gade_line, nn
+  integer :: i, j, k, n, nz
   integer :: tau
   real    :: depth, thkocean
   real    :: delta(nk), delta_rho_tocean(nk), delta_rho0_triver(nk)
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
   real    :: tracer_input 
-  real    :: c_p = 3974.0
-  real    :: L_f = 3.34*10**5
-  real    :: triver, triver_sum
-
   
   integer :: stdoutunit 
   stdoutunit=stdout() 
@@ -836,7 +801,7 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
   delta_rho_tocean  = 0.0
   delta_rho0_triver = 0.0
   wrk1              = 0.0
-
+               
   do j=jsc,jec
      do i=isc,iec
 
@@ -847,13 +812,7 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
         ! rate (kg/m2/sec) of fluid with tracer concentration triver
         ! that is to be distributed in the vertical. 
 
-            if ( Grd%yt(i,j) < -60.0 ) then
-                depth = min(Grd%ht(i,j),100.0)
-            else
-                depth = min(Grd%ht(i,j),river_insertion_thickness)
-            endif
-
-            !depth = min(Grd%ht(i,j),river_insertion_thickness)        ! be sure not to discharge river content into rock 
+            depth = min(Grd%ht(i,j),river_insertion_thickness)        ! be sure not to discharge river content into rock 
             nz    = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! number of k-levels into which discharge rivers
             nz    = max(1,nz)                                         ! make sure have at least one cell to discharge into
 
@@ -899,65 +858,6 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
 !  !        !
 !  xxxxxxxxxx               
 
-              gade_line = 1
-              if ( Grd%yt(i,j) < -60.0 ) gade_line = 0
-
-              if (gade_line == 0 ) then
-                 if ( n == 1 ) then
-                    nn = index_salt
-                 elseif ( n == 2 ) then
-                    nn = index_temp
-                 else
-                    nn = n
-                 end if
-
-                 triver = 0.0
-                 triver_sum = 0.0
-
-                 if ( trim(T_prog(nn)%name) /= 'temp' ) then !salt and age
-
-                    do k=1,nz
-                       zinsert = river(i,j)*dtime*delta(k)
-                       tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + triver*zinsert) / &
-                                      (Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                       triver_sum = triver_sum + triver*delta(k)
-                    enddo
-
-                    T_prog(nn)%triver(i,j) = triver_sum !average for ocean_diagnostics
-
-                    do k=1,nz
-                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
-                    enddo
-
-                 else    !temp
-
-                    do k=1,nz
-                       tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
-                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/&
-                                    & T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
-                       zinsert = river(i,j)*dtime*delta(k)
-                       triver = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
-                       & T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert
-                       triver_sum = triver_sum + triver*delta(k)
-                    enddo
-
-                    !T_prog(nn)%triver(i,j) = triver_sum !average for ocean_diagnostics
-                    !Update variables (normally calculated at ocean_sbc)
-                    !T_prog(nn)%trunoff(i,j) = triver_sum
-                    !T_prog(nn)%runoff_tracer_flux(i,j)=Grd%tmask(i,j,1)*T_prog(nn)%trunoff(i,j)*river(i, j)
-
-                    do k=1,nz
-                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
-                    enddo
-                 endif !tracers
-
-                 !Update tendency
-                 do k=1,nz
-                    T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
-                 enddo
-
-              elseif (gade_line == 1 ) then
-
                zextra=0.0
                do k=nz,1,-1
                   tracernew(k) = 0.0
@@ -1000,7 +900,7 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
                    enddo
                endif
                             
-              endif !gade line               
+               
             enddo ! n end  
 
         endif ! river > 0
@@ -1008,26 +908,6 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
      enddo   ! i end
   enddo      ! j end
 
-!Pedro
-    !!Diags
-  if (id_runoff_ts > 0) then !basal temp
-     wrk1_2d=0.0
-     do j=jsc,jec
-        do i=isc,iec
-           if ( river(i,j) /= 0.0 ) then
-              wrk1_2d(i,j) = T_prog(index_temp)%triver(i,j)
-           endif
-        enddo
-     enddo
-     call diagnose_2d(Time, Grd, id_runoff_ts, wrk1_2d(:,:))
-  endif
-
-  do n=1,num_prog_tracers
-     if(id_runoff_ts_flux(n) > 0) then !temp/salt flux
-        call diagnose_3d(Time, Grd, id_runoff_ts_flux(n), T_prog(n)%wrk1(:,:,:)*T_prog(n)%conversion)
-     endif
-  enddo
-!Pedro
 
   if (debug_this_module_heat) then
           wrk1_2d(:,:) = 0.0

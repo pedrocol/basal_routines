@@ -76,7 +76,7 @@ type ocean_icb_type
 end type ocean_icb_type
 
 
-type(ocean_icb_type), allocatable, dimension(:) :: Basal
+!type(ocean_icb_type), allocatable, dimension(:) :: Basal
 type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
@@ -236,7 +236,7 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
 
   num_prog_tracers = 3
 
-  allocate ( Basal(num_prog_tracers) )
+  !allocate ( Basal(num_prog_tracers) )
 
   call write_version_number(version, tagname)
 
@@ -263,9 +263,9 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
   !bottom level Grid%kmt(i,j)
 #endif
 
-  do n=1,num_prog_tracers
-     Basal(n)%id = -1
-  enddo
+  !do n=1,num_prog_tracers
+  !   Basal(n)%id = -1
+  !enddo
 
   dtimer = 1.0/dtime
 
@@ -278,33 +278,34 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
       return
   endif
 
-  do n = 1, num_prog_tracers
-    ! Read icb fw flux  data
-    name = 'INPUT/icb_fw.nc'
-    if ( n == 1 ) then
-       Basal(n)%id = init_external_field(name,'meltingFlux',domain=Domain%domain2d)
-       if (Basal(n)%id < 1) then
-         call mpp_error(FATAL,&
-         '==>Error: in ocean_icb_tracer_mod:  icb fw values are not specified')
-       endif
-       Basal(n)%name = 'icb_fw' 
-    elseif ( n == 2 ) then
-       Basal(n)%id = init_external_field(name,'sodepmin_isf',domain=Domain%domain2d)
-       if (Basal(n)%id < 1) then
-         call mpp_error(FATAL,&
-         '==>Error: in ocean_icb_tracer_mod:  icb front values are not specified')
-       endif
-       Basal(n)%name = 'depmin' 
-    elseif ( n == 3 ) then
-       Basal(n)%id = init_external_field(name,'sodepmax_isf',domain=Domain%domain2d)
-       if (Basal(n)%id < 1) then
-         call mpp_error(FATAL,&
-         '==>Error: in ocean_icb_tracer_mod:  icb GL values are not specified')
-       endif
-       Basal(n)%name = 'depmax' 
-    endif
-    write(stdoutunit,*) '==> Using icb freshwater flux data specified from file '//trim(name)
-  enddo
+  !No need to read data in ICB
+  !do n = 1, num_prog_tracers
+  !  ! Read icb fw flux  data
+  !  name = 'INPUT/icb_fw.nc'
+  !  if ( n == 1 ) then
+  !     Basal(n)%id = init_external_field(name,'meltingFlux',domain=Domain%domain2d)
+  !     if (Basal(n)%id < 1) then
+  !       call mpp_error(FATAL,&
+  !       '==>Error: in ocean_icb_tracer_mod:  icb fw values are not specified')
+  !     endif
+  !     Basal(n)%name = 'icb_fw' 
+  !  elseif ( n == 2 ) then
+  !     Basal(n)%id = init_external_field(name,'sodepmin_isf',domain=Domain%domain2d)
+  !     if (Basal(n)%id < 1) then
+  !       call mpp_error(FATAL,&
+  !       '==>Error: in ocean_icb_tracer_mod:  icb front values are not specified')
+  !     endif
+  !     Basal(n)%name = 'depmin' 
+  !  elseif ( n == 3 ) then
+  !     Basal(n)%id = init_external_field(name,'sodepmax_isf',domain=Domain%domain2d)
+  !     if (Basal(n)%id < 1) then
+  !       call mpp_error(FATAL,&
+  !       '==>Error: in ocean_icb_tracer_mod:  icb GL values are not specified')
+  !     endif
+  !     Basal(n)%name = 'depmax' 
+  !  endif
+  !  write(stdoutunit,*) '==> Using icb freshwater flux data specified from file '//trim(name)
+  !enddo
 
   ! register diagnostic outputs
   id_ticb = register_diag_field ('ocean_model','temp_icb',Grd%tracer_axes(1:2),          &
@@ -514,46 +515,48 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
 
   import_file = 2
 
-  if ( import_file == 2) then
-    if ( Basal(1)%id > 0 ) then
-       ! get icb value for current time
-       call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
-       do j=jsd,jed
-         do i=isd,ied
-            fwfisf(i,j)=wrk1(i,j,1)
-         enddo
-       enddo
-    endif
-    if (Basal(2)%id > 0) then
-       wrk1  = 0.0
-       ! get icb value for current time
-       call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
-       do j=jsd,jed
-         do i=isd,ied
-            misfzt(i,j)=wrk1(i,j,1)
-         enddo
-       enddo
-    endif
-    if (Basal(3)%id > 0) then
-       wrk1  = 0.0 
-       ! get icb value for current time
-       call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
-       do j=jsd,jed
-         do i=isd,ied
-            misfzb(i,j)=wrk1(i,j,1)
-         enddo
-       enddo
-    endif
-  else
-    misfzt(:,:)=100
-    misfzb(:,:)=400
-    fwfisf(:,:) = 0.0
-    fwfisf(:,:) = icb_i(:,:)
-  endif
+  !if ( import_file == 2) then
+  !  if ( Basal(1)%id > 0 ) then
+  !     ! get icb value for current time
+  !     call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  !     do j=jsd,jed
+  !       do i=isd,ied
+  !          fwfisf(i,j)=wrk1(i,j,1)
+  !       enddo
+  !     enddo
+  !  endif
+  !  if (Basal(2)%id > 0) then
+  !     wrk1  = 0.0
+  !     ! get icb value for current time
+  !     call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
+  !     do j=jsd,jed
+  !       do i=isd,ied
+  !          misfzt(i,j)=wrk1(i,j,1)
+  !       enddo
+  !     enddo
+  !  endif
+  !  if (Basal(3)%id > 0) then
+  !     wrk1  = 0.0 
+  !     ! get icb value for current time
+  !     call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
+  !     do j=jsd,jed
+  !       do i=isd,ied
+  !          misfzb(i,j)=wrk1(i,j,1)
+  !       enddo
+  !     enddo
+  !  endif
+  !else
+  !  misfzt(:,:)=100
+  !  misfzb(:,:)=400
+  !  fwfisf(:,:) = 0.0
+  !  fwfisf(:,:) = icb_i(:,:)
+  !endif
 
   !For this test we store the fw flux in icb_i to copy it later to river
   !icb_i(:,:) = fwfisf(:,:)
   !For this first test we use the original river values
+  misfzt(:,:)=1
+  misfzb(:,:)=100
   fwfisf(:,:) = 0.0
   fwfisf(:,:) = icb_i(:,:)
 
@@ -581,10 +584,11 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
         ! the array "river" contains the volume rate (m/s) or mass
         ! rate (kg/m2/sec) of fluid with tracer 
         ! that is to be distributed in the vertical.
-           mininsertiondepth = misfzt(i,j)
-           depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
-           misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
-           misfkt(i,j) = max(1,misfkt(i,j))
+           !mininsertiondepth = misfzt(i,j)
+           !depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
+           !misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
+           !misfkt(i,j) = max(1,misfkt(i,j))
+           misfkt(i,j) = 1
            !maxinsertiondepth = Grd%zt(misfkb(i,j))
            maxinsertiondepth = misfzb(i,j)
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
