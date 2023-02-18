@@ -119,6 +119,7 @@ module ocean_types_mod
      character(len=72)  :: ocean_sponges_tracer
 !Pedro
      character(len=72)  :: ocean_basal_tracer
+     character(len=72)  :: ocean_icb_tracer
 !Pedro
      character(len=72)  :: ocean_sponges_velocity
      character(len=72)  :: ocean_ideal_surf_wave
@@ -1044,6 +1045,8 @@ module ocean_types_mod
      !Pedro
      real, _ALLOCATABLE, dimension(:,:)     :: tbasal              _NULL ! tracer concentration in river(=runoff+calving) 
      real, _ALLOCATABLE, dimension(:,:)     :: basal_tracer_flux   _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
+     real, _ALLOCATABLE, dimension(:,:)     :: ticb              _NULL ! tracer concentration in river(=runoff+calving) 
+     real, _ALLOCATABLE, dimension(:,:)     :: icb_tracer_flux   _NULL ! flux in liquid runoff (e.g., kg*degC/(m^2 s) for temp)
      !Pedro
      real, _ALLOCATABLE, dimension(:,:)     :: riverdiffuse        _NULL ! where to enhance diff_cbt according to rivers
      real, _ALLOCATABLE, dimension(:,:)     :: flux_int            _NULL ! integrated sfc tracer flux for diagnostics
