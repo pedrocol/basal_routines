@@ -644,7 +644,6 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
   real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
   real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
-  real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
   real, dimension(isd:,jsd:,:,:), intent(in)       :: uicb3d
   real, dimension(isd:,jsd:,:),   intent(inout)    :: icb3d
   logical,                      intent(in)    :: energy_analysis_step
