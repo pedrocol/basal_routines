@@ -768,7 +768,6 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
   real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
-  real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
   logical,                      intent(in)    :: energy_analysis_step
   real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
   real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
@@ -1001,7 +1000,7 @@ subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_
            !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n)
            !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) -basal_u(i,j)*ubasal(i,j,n)
            ft1(i,j) = -pme_u(i,j)*upme(i,j,n) - river_u(i,j)*uriver(i,j,n) &
-                      - basal3d_u(i,j,1)*ubasal3d(i,j,1,n) - icb3d_u(i,j,1)*icb3d(i,j,1,n)
+                      - basal3d_u(i,j,1)*ubasal3d(i,j,1,n) - icb3d_u(i,j,1)*uicb3d(i,j,1,n)
            !Pedro
            ft2(i,j) = 0.0
         enddo
