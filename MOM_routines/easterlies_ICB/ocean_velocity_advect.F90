@@ -641,6 +641,7 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
   real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
+  real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
   real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
   real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
   real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
@@ -692,7 +693,7 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
 
   if(advection_scheme==VEL_ADVECT_2ND_ORDER) then 
     call vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, river_u, &
-                                 basal, basal_u, icb, icb_u, upme, uriver, ubasal, &
+                                 basal, basal_u, icb, icb_u, upme, uriver, ubasal, uicb, &
                                  basal3d, ubasal3d, basal3d_u, &
                                  icb3d, uicb3d, icb3d_u, energy_analysis_step) !Pedro
   elseif(advection_scheme==VEL_ADVECT_UPWIND) then
@@ -748,7 +749,7 @@ end subroutine vert_advection_of_velocity
 ! </DESCRIPTION>
 ! 
 subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, river_u, &
-                                   basal, basal_u, icb, icb_u, upme, uriver, ubasal, &
+                                   basal, basal_u, icb, icb_u, upme, uriver, ubasal, uicb, &
                                    basal3d, ubasal3d, basal3d_u, &
                                    icb3d, uicb3d, icb3d_u, energy_analysis_step)
 
@@ -768,6 +769,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
   real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
+  real, dimension(isd:,jsd:,:), intent(in)    :: uicb !Pedro
   logical,                      intent(in)    :: energy_analysis_step
   real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
   real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
