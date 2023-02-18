@@ -626,8 +626,8 @@ end subroutine horz_advection_upwind
 ! </DESCRIPTION>
 ! 
 subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
-                                      basal, icb, upme, uriver, ubasal, &
-                                      basal3d, ubasal3d, uicb, icb3d, uicb3d, energy_analysis_step)
+                                      basal, icb, upme, uriver, ubasal, uicb,  &
+                                      basal3d, ubasal3d, icb3d, uicb3d, energy_analysis_step)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel

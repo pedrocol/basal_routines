@@ -2398,8 +2398,8 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   ! eng(3) [=]  kg*m^2/s^3 = Watt
   call vert_advection_of_velocity(Time, Adv_vel, Velocity,  &
                                   pme, river, basal, icb, &
-                                  upme, uriver, ubasal, &
-                                  basal3d, ubasal3d, uicb, icb3d, uicb3d, energy_analysis_step=.true.) !Pedro
+                                  upme, uriver, ubasal, uicb, &
+                                  basal3d, ubasal3d, icb3d, uicb3d, energy_analysis_step=.true.) !Pedro
   do n=1,2
      do k=1,nk
         do j=jsc,jec
