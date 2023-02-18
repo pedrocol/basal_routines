@@ -974,8 +974,8 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
       ! fill Velocity%advection(tau_m0) 
       call horz_advection_of_velocity(Time, Thickness, Adv_vel, Velocity, energy_analysis_step=.false.)       
       call vert_advection_of_velocity(Time, Adv_vel, Velocity, &
-                                      pme, river, basal, icb, upme, uriver, ubasal, &
-                                      basal3d, ubasal3d, uicb, icb3d, uicb3d, energy_analysis_step=.false.) !Pedro
+                                      pme, river, basal, icb, upme, uriver, ubasal, uicb, &
+                                      basal3d, ubasal3d, icb3d, uicb3d, energy_analysis_step=.false.) !Pedro
 
       do n=1,2
          do k=1,nk
