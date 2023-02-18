@@ -750,7 +750,7 @@ end subroutine vert_advection_of_velocity
 subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, river_u, &
                                    basal, basal_u, icb, icb_u, upme, uriver, ubasal, &
                                    basal3d, ubasal3d, basal3d_u, &
-                                   uicb, icb3d, uicb3d, icb3d_u, energy_analysis_step)
+                                   icb3d, uicb3d, icb3d_u, energy_analysis_step)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel
@@ -871,7 +871,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            !           -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) 
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i,j+1))  *(upme(i,j,n)  +upme(i-1,j,n)  ) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) &
-                      -onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,1)+basal3d(i,j+1,1))*(ubasal3d(i,j,1,n)+ubasal3d(i-1,j,1,n) &
+                      -onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,1)+basal3d(i,j+1,1))*(ubasal3d(i,j,1,n)+ubasal3d(i-1,j,1,n)) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(icb3d(i,j,1)+icb3d(i,j+1,1))*(uicb3d(i,j,1,n)+uicb3d(i-1,j,1,n))
                       !-onefourth*Grd%tmasken(i,j,1,n)*(basal(i,j)+basal(i,j+1))*(ubasal(i,j,n)+ubasal(i-1,j,n)) 
            !Pedro

@@ -365,10 +365,9 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
   !try to write out icb fwflx data to output for test
   ! get sponge value for current time
   wrk1=0.0
-  call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
-  call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
-  call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
-  !call diagnose_3d(Time, Grd, id_icb_fwflx,wrk1(:,:,:))
+  !call time_interp_external(Basal(1)%id, Time%model_time, wrk1)
+  !call time_interp_external(Basal(2)%id, Time%model_time, wrk1)
+  !call time_interp_external(Basal(3)%id, Time%model_time, wrk1)
 
   call watermass_diag_init_ba(Time, Dens)
 
