@@ -295,7 +295,7 @@ use ocean_sponges_eta_mod,        only: ocean_sponges_eta_init, sponge_eta_sourc
 use ocean_sponges_tracer_mod,     only: ocean_sponges_tracer_init, sponge_tracer_source
 !Pedro
 use ocean_basal_tracer_mod,       only: ocean_basal_tracer_init, basal_tracer_source
-use ocean_icb_tracer_mod,       only: ocean_icb_tracer_init, icb_tracer_source
+use ocean_icb_tracer_mod,         only: ocean_icb_tracer_init, icb_tracer_source
 !Pedro
 use ocean_sponges_velocity_mod,   only: ocean_sponges_velocity_init, sponge_velocity_source
 use ocean_submesoscale_mod,       only: ocean_submesoscale_init, submeso_restrat
@@ -1651,7 +1651,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !Pedro
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, icb, &
-            calving, upme, uriver, ubasal, swflx, swflx_vis, patm, ubasal3d, uicb3d)
+            calving, upme, uriver, ubasal, uicb, swflx, swflx_vis, patm, ubasal3d, uicb3d)
        !Pedro
        call mpp_clock_end(id_sbc)
 
