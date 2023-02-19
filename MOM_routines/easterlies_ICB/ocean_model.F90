@@ -1951,7 +1951,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_eta_and_pbot_diagnose)
        !Pedro
        !call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, Ext_mode, Lagrangian_system, use_blobs)
-       call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, basal, &
+       call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, basal, icb, &
                                   Ext_mode, Lagrangian_system, use_blobs)
        !Pedro
        call mpp_clock_end(id_eta_and_pbot_diagnose)
