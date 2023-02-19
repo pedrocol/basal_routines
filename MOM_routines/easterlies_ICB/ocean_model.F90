@@ -2010,7 +2010,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !     Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, upme, uriver)
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
                Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, basal, & 
-               upme, uriver, ubasal, basal3d, ubasal3d)
+               icb, upme, uriver, ubasal, basal3d, ubasal3d, uicb, icb3d, uicb3d)
           !Pedro
        endif
        call mpp_clock_end(id_explicit_accel_a)
