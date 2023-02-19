@@ -2206,6 +2206,7 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme
   real, dimension(isd:,jsd:,:),   intent(in)    :: uriver
   real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal !Pedro
+  real, dimension(isd:,jsd:,:),   intent(in)    :: uicb !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: visc_cbu
   real, dimension(isd:,jsd:,:),   intent(in)    :: visc_cbt
   real, dimension(isd:,jsd:,:,:), intent(in)    :: visc_cbu_form_drag
