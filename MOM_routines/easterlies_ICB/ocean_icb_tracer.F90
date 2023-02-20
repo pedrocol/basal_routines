@@ -555,8 +555,8 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
   !For this test we store the fw flux in icb_i to copy it later to river
   !icb_i(:,:) = fwfisf(:,:)
   !For this first test we use the original river values
-  misfzt(:,:)=1
-  misfzb(:,:)=100
+  misfzt(:,:)=1.0
+  misfzb(:,:)=100.0
   fwfisf(:,:) = 0.0
   fwfisf(:,:) = icb_i(:,:)
 
@@ -640,9 +640,11 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
 
                     do k=misfkt(i,j),misfkb(i,j)
                        tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
-                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
+                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau)) &
+                                    /T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
                        zinsert = fwfisf(i,j)*dtime*delta(k)
-                       ticb = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
+                       ticb = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
+                               T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
                        ticb_sum = ticb_sum + ticb*delta(k)
                     enddo
                     firstlev = misfkt(i,j)
