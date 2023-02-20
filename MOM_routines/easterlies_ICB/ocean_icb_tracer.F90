@@ -651,6 +651,8 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
         
                     T_prog(nn)%ticb(i,j) = ticb_sum !average for ocean_diagnostics
 
+                    PRINT *, T_prog(nn)%ticb(i,j)
+
                     do k=firstlev,misfkb(i,j)
                        T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
                     enddo
