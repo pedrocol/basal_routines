@@ -244,17 +244,17 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
 
   ! provide for namelist over-ride of default values
 #ifdef INTERNAL_FILE_NML
-  read(input_nml_file, nml=ocean_icb_tracer_nml, iostat=io_status)
-  ierr = check_nml_error(io_status, 'ocean_icb_tracer_nml')
+  read(input_nml_file, nml=ocean_basal_tracer_nml, iostat=io_status)
+  ierr = check_nml_error(io_status, 'ocean_basal_tracer_nml icb')
 #else
   ioun =  open_namelist_file()
-  read(ioun, ocean_icb_tracer_nml, IOSTAT=io_status)
-  ierr = check_nml_error(io_status, 'ocean_icb_tracer_nml')
+  read(ioun, ocean_basal_tracer_nml, IOSTAT=io_status)
+  ierr = check_nml_error(io_status, 'ocean_basal_tracer_nml icb')
   call close_file(ioun)
 #endif
-  write(stdlogunit, ocean_icb_tracer_nml)
+  write(stdlogunit, ocean_basal_tracer_nml)
   write(stdoutunit, '(/)')
-  write(stdoutunit, ocean_icb_tracer_nml)
+  write(stdoutunit, ocean_basal_tracer_nml)
 
   Dom => Domain
   Grd => Grid
