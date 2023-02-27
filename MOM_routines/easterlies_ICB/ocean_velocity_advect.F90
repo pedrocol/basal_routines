@@ -801,7 +801,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
               !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) 
               !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) -basal_u(i,j)*ubasal(i,j,n) 
               ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) - basal3d_u(i,j,1)*ubasal3d(i,j,1,n) &
-                         - icb3d_u(i,j,1)*uicb3d(i,j,1,n)
+                         - icb_u(i,j)*uicb(i,j,n)
               !Pedro
               ft2(i,j) = 0.0
            enddo
@@ -812,7 +812,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            do j=jsc,jec
               do i=isc,iec
                  ft2(i,j) = Adv_vel%wrho_bu(i,j,k)*0.5*(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) &
-                            + basal3d_u(i,j,k)*ubasal3d(i,j,k,n) + icb3d_u(i,j,k)*uicb3d(i,j,k,n)
+                            + basal3d_u(i,j,k)*ubasal3d(i,j,k,n)
                  wrk1_v(i,j,k,n) = Grd%umask(i,j,k)*(ft1(i,j)-ft2(i,j))
                  ft1(i,j) = ft2(i,j)
               enddo
@@ -838,7 +838,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i+1,j))  *(upme(i,j,n)  +upme(i,j-1,n)  ) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i+1,j))*(uriver(i,j,n)+uriver(i,j-1,n)) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,1)+basal3d(i+1,j,1))*(ubasal3d(i,j,1,n)+ubasal3d(i,j-1,1,n)) &
-                      -onefourth*Grd%tmasken(i,j,1,n)*(icb3d(i,j,1)+icb3d(i+1,j,1))*(uicb3d(i,j,1,n)+uicb3d(i,j-1,1,n))
+                      -onefourth*Grd%tmasken(i,j,1,n)*(icb(i,j)+icb(i+1,j))*(uicb(i,j,n)+uicb(i,j-1,n))
                       !-onefourth*Grd%tmasken(i,j,1,n)*(basal(i,j)+basal(i+1,j))*(ubasal(i,j,n)+ubasal(i,j-1,n)) 
            !Pedro
            ft2(i,j) = 0.0
@@ -851,9 +851,9 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
               ft2(i,j) = onefourth*(Adv_vel%wrho_bt(i,j,k)+Adv_vel%wrho_bt(i+1,j,k)) &
                                   *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) &
                          +onefourth*Grd%tmasken(i,j,k,n)*(basal3d(i,j,k)+basal3d(i+1,j,k))&
-                                  *(ubasal3d(i,j,k,n)+ubasal3d(i,j-1,k,n)) &
-                         +onefourth*Grd%tmasken(i,j,k,n)*(icb3d(i,j,k)+icb3d(i+1,j,k))&
-                                  *(uicb3d(i,j,k,n)+uicb3d(i,j-1,k,n))
+                                  *(ubasal3d(i,j,k,n)+ubasal3d(i,j-1,k,n))
+                         !+onefourth*Grd%tmasken(i,j,k,n)*(icb3d(i,j,k)+icb3d(i+1,j,k))&
+                         !         *(uicb3d(i,j,k,n)+uicb3d(i,j-1,k,n))
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
@@ -872,7 +872,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i,j+1))  *(upme(i,j,n)  +upme(i-1,j,n)  ) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) &
                       -onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,1)+basal3d(i,j+1,1))*(ubasal3d(i,j,1,n)+ubasal3d(i-1,j,1,n)) &
-                      -onefourth*Grd%tmasken(i,j,1,n)*(icb(i,j,1)+icb(i,j+1,1))*(uicb(i,j,1,n)+uicb(i-1,j,1,n))
+                      -onefourth*Grd%tmasken(i,j,1,n)*(icb(i,j)+icb(i,j+1))*(uicb(i,j,n)+uicb(i-1,j,n))
            !Pedro
            ft2(i,j) = 0.0
         enddo
