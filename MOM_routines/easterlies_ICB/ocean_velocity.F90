@@ -913,7 +913,7 @@ end subroutine ocean_velocity_init
 !
 subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
                                   L_system, rho, pme, river, basal, icb, upme, uriver, ubasal, &
-                                  basal3d, ubasal3d, uicb, icb3d, uicb3d)
+                                  basal3d, ubasal3d, uicb)
 
   type(ocean_velocity_type),      intent(inout) :: Velocity
   type(ocean_time_type),          intent(in)    :: Time
@@ -923,18 +923,16 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
   type(ocean_lagrangian_type),    intent(inout) :: L_system
   real, dimension(isd:,jsd:,:),   intent(in)    :: rho
   real, dimension(isd:,jsd:),     intent(in)    :: pme
-  !real, dimension(isd:,jsd:),     intent(in)    :: river
-  real, dimension(isd:,jsd:),     intent(inout)    :: river
+  real, dimension(isd:,jsd:),     intent(in)    :: river
   !Pedro
-  !real, dimension(isd:,jsd:),     intent(in)    :: basal
-  real, dimension(isd:,jsd:),     intent(inout)    :: basal
-  real, dimension(isd:,jsd:,:),   intent(in)       :: ubasal
-  real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
-  real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
-  real, dimension(isd:,jsd:),     intent(inout)    :: icb
-  real, dimension(isd:,jsd:,:),   intent(in)       :: uicb
-  real, dimension(isd:,jsd:,:,:), intent(in)       :: uicb3d
-  real, dimension(isd:,jsd:,:),   intent(inout)    :: icb3d
+  real, dimension(isd:,jsd:),     intent(in)    :: basal
+  real, dimension(isd:,jsd:,:),   intent(in)    :: ubasal
+  real, dimension(isd:,jsd:,:,:), intent(in)    :: ubasal3d
+  real, dimension(isd:,jsd:,:),   intent(in)    :: basal3d
+  real, dimension(isd:,jsd:),     intent(in)    :: icb
+  real, dimension(isd:,jsd:,:),   intent(in)    :: uicb
+!  real, dimension(isd:,jsd:,:,:), intent(in)    :: uicb3d
+!  real, dimension(isd:,jsd:,:),   intent(in)    :: icb3d
   !Pedro
   real, dimension(isd:,jsd:,:),   intent(in)    :: upme
   real, dimension(isd:,jsd:,:),   intent(in)    :: uriver 
@@ -975,7 +973,7 @@ subroutine ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens, &
       call horz_advection_of_velocity(Time, Thickness, Adv_vel, Velocity, energy_analysis_step=.false.)       
       call vert_advection_of_velocity(Time, Adv_vel, Velocity, &
                                       pme, river, basal, icb, upme, uriver, ubasal, uicb, &
-                                      basal3d, ubasal3d, icb3d, uicb3d, energy_analysis_step=.false.) !Pedro
+                                      basal3d, ubasal3d, energy_analysis_step=.false.) !Pedro
 
       do n=1,2
          do k=1,nk

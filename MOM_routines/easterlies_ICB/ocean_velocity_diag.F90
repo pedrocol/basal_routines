@@ -2400,7 +2400,7 @@ subroutine energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens,    &
   call vert_advection_of_velocity(Time, Adv_vel, Velocity,  &
                                   pme, river, basal, icb, &
                                   upme, uriver, ubasal, uicb, &
-                                  basal3d, ubasal3d, icb3d, uicb3d, energy_analysis_step=.true.) !Pedro
+                                  basal3d, ubasal3d, energy_analysis_step=.true.) !Pedro
   do n=1,2
      do k=1,nk
         do j=jsc,jec
