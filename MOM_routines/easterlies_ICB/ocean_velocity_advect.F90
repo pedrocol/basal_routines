@@ -678,13 +678,11 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   basal_u  = REMAP_BT_TO_BU(basal(:,:))
   basal3d_u  = 0.0
   icb_u  = 0.0
-  icb_u  = REMAP_BT_TO_BU(basal(:,:))
-  icb3d_u  = 0.0
+  icb_u  = REMAP_BT_TO_BU(icb(:,:))
   do j=jsc,jec
      do i=isc,iec
         do k=1,nk
            basal3d_u(:,:,k)  = REMAP_BT_TO_BU(basal3d(:,:,k))
-           icb3d_u(:,:,k)  = REMAP_BT_TO_BU(icb3d(:,:,k))
         enddo   
      enddo
   enddo
