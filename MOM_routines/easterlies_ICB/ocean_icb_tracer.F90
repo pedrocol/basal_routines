@@ -312,7 +312,7 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
   ! register diagnostic outputs
   id_ticb = register_diag_field ('ocean_model','temp_icb',Grd%tracer_axes(1:2),          &
               Time%model_time, 'temperature of icb melt runoff entering the ocean',        &
-              'degC' , missing_value=missing_value,range=(/-1.e10,1.e10/))
+              'degC' , missing_value=missing_value,range=(/-1.e12,1.e12/))
   id_icb_fwflx = register_diag_field ('ocean_model','icb_fwflx', Grd%tracer_axes(1:3),   &
               Time%model_time, 'mass flux of liquid icb meltwater entering ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
