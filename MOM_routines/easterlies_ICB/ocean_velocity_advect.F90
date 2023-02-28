@@ -706,8 +706,8 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
          do j=jsc,jec
             do i=isc,iec
                surf_accel(i,j,n) = Grd%umask(i,j,1)*(pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n) & 
-                                                     + basal3d_u(i,j,1)*ubasal3d(i,j,n,1) &
-                                                     + icb3d_u(i,j,1)*uicb3d(i,j,n,1)) !Pedro
+                                                     + basal3d_u(i,j,1)*ubasal3d(i,j,n,1) 
+                                                     !+ icb3d_u(i,j,1)*uicb3d(i,j,n,1)) !Pedro
                                                      !+ basal_u(i,j)*ubasal(i,j,n)) !Pedro
             enddo
          enddo
