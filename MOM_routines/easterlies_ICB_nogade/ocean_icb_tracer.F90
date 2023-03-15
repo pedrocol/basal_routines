@@ -606,7 +606,7 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
            enddo
 
            do n=1,num_prog_tracers
-              gade_line = 0
+              gade_line = 1 ! 1 no gade
 
               if (gade_line == 0 ) then
                  if ( n == 1 ) then
@@ -669,13 +669,15 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
                  ticb_sum = 0.0
 
                  if ( trim(T_prog(n)%name) == 'temp' ) then
-                    sal = T_prog(index_salt)%field(i,j,k,tau)
-                    !sal = 0.0
-                    press = Dens%pressure_at_depth(i,j,k)
-                    call frz_preteos10(tfreezing, press, sal)
-                    !ticb = tfreezing
-                    tfreezing = contemp_from_pottemp(sal,tfreezing)
-                    ticb = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
+                    !sal = T_prog(index_salt)%field(i,j,k,tau)
+                    !!sal = 0.0
+                    !press = Dens%pressure_at_depth(i,j,k)
+                    !call frz_preteos10(tfreezing, press, sal)
+                    !!ticb = tfreezing
+                    !tfreezing = contemp_from_pottemp(sal,tfreezing)
+                    !ticb = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
+
+                    ticb =  max(0,T_prog(index_temp)%field(i,j,1,tau))
                  endif
                  if ( trim(T_prog(n)%name) == 'salt' ) ticb = 0.0
                  !ticb = T_prog(n)%triver(i,j)
