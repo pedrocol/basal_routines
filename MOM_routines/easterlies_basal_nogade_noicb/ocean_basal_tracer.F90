@@ -669,7 +669,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     call frz_preteos10(tfreezing, press, sal)
                     tfreezing = contemp_from_pottemp(sal,tfreezing)
                     tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
-                    PRINT *, tfreezing, tbasal
                     !tbasal = tfreezing
                  endif
                  if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
