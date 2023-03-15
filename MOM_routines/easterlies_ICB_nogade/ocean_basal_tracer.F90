@@ -602,7 +602,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            enddo
 
            do n=1,num_prog_tracers
-              gade_line = 0
+              gade_line = 1 !1 no gade
 
               if (gade_line == 0 ) then
                  if ( n == 1 ) then
@@ -663,13 +663,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  tbasal_sum = 0.0
 
                  if ( trim(T_prog(n)%name) == 'temp' ) then
-                    sal = T_prog(index_salt)%field(i,j,k,tau)
-                    !sal = 0.0
+                    !sal = T_prog(index_salt)%field(i,j,k,tau)
+                    sal = 0.0
                     press = Dens%pressure_at_depth(i,j,k)
                     call frz_preteos10(tfreezing, press, sal)
-                    !tbasal = tfreezing
                     tfreezing = contemp_from_pottemp(sal,tfreezing)
                     tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
+                    !tbasal = tfreezing
                  endif
                  if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
                  !tbasal = T_prog(n)%triver(i,j)
