@@ -5,6 +5,7 @@ root=/home/552/pc5520/access-om2/src/mom/src/mom5/
 cp ocean_advection_velocity.F90 $root/ocean_core/
 cp ocean_barotropic.F90 $root/ocean_core/
 cp ocean_basal_tracer.F90 $root/ocean_param/sources/
+cp ocean_icb_tracer.F90 $root/ocean_param/sources/
 cp ocean_diagnostics.F90 $root/ocean_diag/
 cp ocean_generic_tracer.F90 $root/ocean_bgc/
 cp ocean_model.F90 $root/ocean_core/
