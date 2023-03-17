@@ -678,6 +678,7 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
                     !ticb = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
 
                     ticb =  max(0,T_prog(index_temp)%field(i,j,1,tau))
+                    PRINT *, ticb
                  endif
                  if ( trim(T_prog(n)%name) == 'salt' ) ticb = 0.0
                  !ticb = T_prog(n)%triver(i,j)
