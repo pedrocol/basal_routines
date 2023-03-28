@@ -602,10 +602,14 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
               delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
            enddo
 
+PRINT * , 'hola0'
+
            do n=1,num_prog_tracers
               gade_line = 0
 
+PRINT * , 'hola1'
               if (gade_line == 0 ) then
+PRINT * , 'hola3'
                  if ( n == 1 ) then
                     nn = index_salt       
                  elseif ( n == 2 ) then
@@ -618,6 +622,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  tbasal_sum = 0.0
 
                  if ( trim(T_prog(nn)%name) /= 'temp' ) then !salt and age
+PRINT * , 'hola4'
                     
                     do k=misfkt(i,j),misfkb(i,j)
                        tracernew(k) = 0.0
@@ -639,6 +644,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
                  else    !temp
 
+PRINT * , 'hola5'
                     do k=misfkt(i,j),misfkb(i,j)
                        tracernew(k) = 0.0
                        tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
