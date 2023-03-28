@@ -618,6 +618,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  if ( trim(T_prog(nn)%name) /= 'temp' ) then !salt and age
                     
                     do k=misfkt(i,j),misfkb(i,j)
+                       tracernew(k) = 0.0
+
                        basal3d(i,j,k) = fwfisf(i,j)*delta(k)
                        zinsert = fwfisf(i,j)*dtime*delta(k)
                        tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
@@ -635,6 +637,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  else    !temp
 
                     do k=misfkt(i,j),misfkb(i,j)
+                       tracernew(k) = 0.0
                        tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
                                     ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
                        zinsert = fwfisf(i,j)*dtime*delta(k)
