@@ -564,6 +564,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   do j=jsc,jec
      do i=isc,iec
 
+        tracernew(:) = 0.0
+
         if (fwfisf(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
 
            if ( misfzt(i,j) == 0 .or. misfzb(i,j) == 0) then
@@ -621,10 +623,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tracernew(k) = 0.0
 
                        basal3d(i,j,k) = fwfisf(i,j)*delta(k)
-                       zinsert = fwfisf(i,j)*dtime*delta(k)
+                       zinsert = basal3d(i,j,k)*dtime
                        tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                       (Thickness%rho_dzt(i,j,k,tau)+zinsert)
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
+                       PRINT *, trim(T_prog(nn)%name),i,j,k,tracernew(k),T_prog(nn)%field(i,j,k,tau)
                     enddo
                     firstlev = misfkt(i,j)
 
@@ -639,9 +642,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     do k=misfkt(i,j),misfkb(i,j)
                        tracernew(k) = 0.0
                        tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
-                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
+                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/ &
+                                    T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
                        zinsert = fwfisf(i,j)*dtime*delta(k)
-                       tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
+                       tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
+                               T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
                     enddo
                     firstlev = misfkt(i,j)
