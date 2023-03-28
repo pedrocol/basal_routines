@@ -626,7 +626,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                       (Thickness%rho_dzt(i,j,k,tau)+zinsert)
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
-                       if ( trim(T_prog(nn)%name) == 'salt' ) PRINT *, i,j,k,tracernew(k)-T_prog(nn)%field(i,j,k,tau)
+                       !if ( trim(T_prog(nn)%name) == 'salt' ) PRINT *, i,j,k,tracernew(k)-T_prog(nn)%field(i,j,k,tau)
                     enddo
                     firstlev = misfkt(i,j)
 
