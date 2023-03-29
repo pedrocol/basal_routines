@@ -626,34 +626,39 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                       (Thickness%rho_dzt(i,j,k,tau)+zinsert)
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
-                       !if ( trim(T_prog(nn)%name) == 'salt' ) PRINT *, i,j,k,tracernew(k)-T_prog(nn)%field(i,j,k,tau)
+                       wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau)
                     enddo
-                    firstlev = misfkt(i,j)
 
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
-                    do k=firstlev,misfkb(i,j)
-                       !T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
-                       T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+basal3d(i,j,k)*dtime) -&
-                                        T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+                    k=1
+                    T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
+                                       T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+
+
+                    do k=misfkt(i,j),misfkb(i,j)
+                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
                     enddo
 
                  else    !temp
                     do k=misfkt(i,j),misfkb(i,j)
                        tracernew(k) = 0.0
                        tracernew(k) = T_prog(index_temp)%field(i,j,k,tau) + &
-                                    ( T_prog(index_salt)%wrk1(i,j,k) * dtime/Thickness%rho_dzt(i,j,k,tau))/ &
-                                    T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
+                                    wrk2(i,j,k) / T_prog(index_salt)%field(i,j,k,tau) * L_f / c_p
+
                        zinsert = fwfisf(i,j)*dtime*delta(k)
                        tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
                                T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert 
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
                     enddo
-                    firstlev = misfkt(i,j)
         
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
-                    do k=firstlev,misfkb(i,j)
+                    k=1
+                    T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
+                                       T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
+
+                    do k=misfkt(i,j),misfkb(i,j)
                        T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
                     enddo
                  endif !tracers
