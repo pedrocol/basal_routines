@@ -324,7 +324,7 @@ subroutine ocean_basal_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
   id_basal_tend = -1
 
   do n=1,num_prog_tracers
-     id_basal_tend(n) = register_diag_field ('ocean_model', 'basal_fw_tend',&
+     id_basal_tend(n) = register_diag_field ('ocean_model', trim(T_prog(n)%name)//'_basal_fw_tend',&
                Grd%tracer_axes(1:3), Time%model_time, 'rho*dzt*tendency due to basal freshwater flux',          &
                trim(T_prog(n)%flux_units), missing_value=missing_value, range=(/-1.e10,1.e10/))
   enddo
@@ -633,7 +633,9 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
                     do k=firstlev,misfkb(i,j)
-                       T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
+                       !T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
+                       T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+basal3d(i,j,k)*dtime) -&
+                                        T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
                     enddo
 
                  else    !temp
