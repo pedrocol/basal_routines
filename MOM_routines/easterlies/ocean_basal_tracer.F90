@@ -626,7 +626,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tracernew(k) = (T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
                                       (Thickness%rho_dzt(i,j,k,tau)+zinsert)
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
-                       wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau)
+                       wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau) !Delta S
                     enddo
 
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
@@ -668,7 +668,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  do k=misfkt(i,j),misfkb(i,j)
                     T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
                  enddo
-                 PRINT *, 'hola'
               elseif (gade_line == 1 ) then
 
                  zextra=0.0
