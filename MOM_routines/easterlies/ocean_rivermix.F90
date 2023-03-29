@@ -899,7 +899,7 @@ subroutine river_discharge_tracer (Time, Thickness, T_prog, river)
 !  !        !
 !  xxxxxxxxxx               
 
-              gade_line = 1
+              gade_line = 0
               if ( Grd%yt(i,j) < -60.0 ) gade_line = 0
 
               if (gade_line == 0 ) then
