@@ -635,9 +635,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     if ( misfkt(i,j) > 1 ) tracernew(k) = T_prog(n)%field(i,j,k,tau)
                     T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                        T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
-
-                    k=1
-                    T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
                     do k=misfkt(i,j),misfkb(i,j)
                        T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
                     enddo
