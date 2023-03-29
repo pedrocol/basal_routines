@@ -632,6 +632,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
                     k=1
+                    if ( misfkt(i,j) > 1 ) tracernew(k) = T_prog(n)%field(i,j,k,tau)
                     T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                        T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
 
@@ -655,6 +656,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
                     k=1
+                    if ( misfkt(i,j) > 1 ) tracernew(k) = T_prog(n)%field(i,j,k,tau)
                     T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                        T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
 
