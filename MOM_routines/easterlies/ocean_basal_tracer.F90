@@ -629,7 +629,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        basal3d(i,j,k) = fwfisf(i,j)*delta(k)
                        zinsert = basal3d(i,j,k)*dtime
                        tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
-                                       tbasal(i,j)*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                                       tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
 
                        zextra=zextra+zinsert
 
