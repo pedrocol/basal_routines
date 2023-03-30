@@ -667,7 +667,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  enddo
 
                  !Update tendency
-                 do k=2,misfkb(i,j)
+                 do k=1,misfkb(i,j)
                     T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
                  enddo
 
