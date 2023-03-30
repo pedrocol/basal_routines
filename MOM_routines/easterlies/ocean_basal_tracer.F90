@@ -635,6 +635,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau) !Delta S
                     enddo
 
+                    if ( misfkt(i,j) > 1 ) then
+                       tracernew(1) = (tracerextra*zextra + T_prog(nn)%field(i,j,1,tau)*Thickness%rho_dzt(i,j,1,tau)) &
+                                       / (zextra+Thickness%rho_dzt(i,j,1,tau))
+                    endif
+
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
                     firstlev = misfkt(i,j)
