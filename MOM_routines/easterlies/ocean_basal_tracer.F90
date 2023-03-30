@@ -635,10 +635,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau) !Delta S
                     enddo
 
-                    if ( misfkt(i,j) > 1 ) then
-                       tracernew(1) = (tracerextra*zextra + T_prog(nn)%field(i,j,1,tau)*Thickness%rho_dzt(i,j,1,tau)) &
-                                       / (zextra+Thickness%rho_dzt(i,j,1,tau))
-                    endif
+                    !if ( misfkt(i,j) > 1 ) then
+                    !   tracerextra = tracernew(misfkt(i,j))
+                    !   tracernew(1) = (tracerextra*zextra + T_prog(nn)%field(i,j,1,tau)*Thickness%rho_dzt(i,j,1,tau)) &
+                    !                   / (zextra+Thickness%rho_dzt(i,j,1,tau))
+                    !endif
 
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
 
@@ -661,14 +662,13 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  endif !gade
 
 
-                 k=1
-                 if ( misfkt(i,j) > 1 ) tracernew(k) = T_prog(nn)%field(i,j,k,tau)
+                 k=misfkt(i,j)
                  T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                            T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
                  if ( misfkt(i,j) == 1 ) then
                     firstlev = 2
                  else
-                    firstlev = misfkt(i,j)
+                    firstlev = misfkt(i,j)+1
                  endif
 
                  do k=firstlev,misfkb(i,j)
