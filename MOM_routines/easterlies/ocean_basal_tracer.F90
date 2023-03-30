@@ -583,6 +583,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
            misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
            misfkt(i,j) = max(1,misfkt(i,j))
+           misfkt(i,j) = 1
            !maxinsertiondepth = Grd%zt(misfkb(i,j))
            maxinsertiondepth = misfzb(i,j)
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
