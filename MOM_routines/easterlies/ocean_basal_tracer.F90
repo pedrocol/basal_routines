@@ -608,11 +608,10 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     nn = index_salt       
                  elseif ( n == 2 ) then
                     nn = index_temp
-                 else
+                 else !3 age
                     nn = n
                  end if
 
-                 PRINT *, i,j,k,n,nn,trim(T_prog(nn)%name),trim(T_prog(n)%name)
                  tbasal = 0.0
                  tbasal_sum = 0.0
 
@@ -660,17 +659,18 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
 
                  k=1
-                 if ( misfkt(i,j) > 1 ) tracernew(k) = Thickness%rho_dzt(i,j,k,tau)
+                 !if ( misfkt(i,j) > 1 ) tracernew(k) = T_prog(nn)%field(i,j,k,tau)
                  T_prog(nn)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
                                            T_prog(nn)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
-                 do k=misfkt(i,j),misfkb(i,j)
+                 do k=2,misfkb(i,j)
                     T_prog(nn)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(nn)%field(i,j,k,tau))/dtime !Tendency
                  enddo
 
                  !Update tendency
-                 do k=misfkt(i,j),misfkb(i,j)
+                 do k=2,misfkb(i,j)
                     T_prog(nn)%th_tendency(i,j,k) = T_prog(nn)%th_tendency(i,j,k) + T_prog(nn)%wrk1(i,j,k)
                  enddo
+
               elseif (gade_line == 1 ) then
 
                  zextra=0.0
