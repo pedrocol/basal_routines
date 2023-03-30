@@ -586,6 +586,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            misfkt(i,j) = 1
            !maxinsertiondepth = Grd%zt(misfkb(i,j))
            maxinsertiondepth = misfzb(i,j)
+           maxinsertiondepth = 40.0
            depth       = min(Grd%ht(i,j),maxinsertiondepth)     ! be sure not to discharge river content into rock, ht = ocean topography
            misfkb(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
            misfkb(i,j) = max(1,misfkb(i,j))                                         ! make sure have at least one cell to discharge into
@@ -611,6 +612,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     nn = n
                  end if
 
+                 PRINT *, i,j,k,n,nn,trim(T_prog(nn)%name),trim(T_prog(n)%name)
                  tbasal = 0.0
                  tbasal_sum = 0.0
 
