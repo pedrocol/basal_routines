@@ -633,7 +633,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
 
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
                        wrk2(i,j,k) = tracernew(k) - T_prog(nn)%field(i,j,k,tau) !Delta S
-                       if ( trim(T_prog(nn)%name) == 'salt' ) PRINT *, i,j,k,wrk2(i,j,k),tracernew(k),T_prog(nn)%field(i,j,k,tau)
                     enddo
 
                     T_prog(nn)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
