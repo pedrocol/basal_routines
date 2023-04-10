@@ -1089,7 +1089,7 @@ subroutine advect_gotm_upwind(Time, Adv_vel, Thickness, pme, river, basal)
      ! to that in the top model grid cell.
      do j=jsc,jec
         do i=isc,iec
-           gotm_tendency(i,j,1) = Grd%tmask(i,j,1)*(pme(i,j)+river(i,j)+basal(i,j))&
+           gotm_tendency(i,j,1) = Grd%tmask(i,j,1)*(pme(i,j)+river(i,j))&
                                   *Gotm(n)%field(i,j,1,taup1_gotm) !Pedro
         enddo
      enddo
@@ -1457,7 +1457,7 @@ subroutine advect_gotm_sweby(Time, Adv_vel, Thickness, pme, river, basal)
      do j=jsd,jed
         do i=isd,ied
            gotm_tendency(i,j,1) = gotm_tendency(i,j,1) + &
-                                  Grd%tmask(i,j,1)*(pme(i,j)+river(i,j)+basal(i,j))&
+                                  Grd%tmask(i,j,1)*(pme(i,j)+river(i,j))&
                                   *Gotm(n)%field(i,j,1,taup1_gotm) !Pedro
         enddo
      enddo
