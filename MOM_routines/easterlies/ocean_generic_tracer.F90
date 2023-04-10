@@ -338,7 +338,7 @@ contains
     character(len=fm_string_len), parameter :: sub_name = 'update_generic_tracer_sbc'
 
     !Pedro
-    runoff(:,:) = runoff(:,:) + basal(:,:)
+    runoff(:,:) = runoff(:,:) !+ basal(:,:)
     !Pedro
 
     !Extract the tracer surface fields from coupler 
@@ -399,7 +399,7 @@ contains
     enddo
 
     !Pedro
-    runoff(:,:) = runoff(:,:) - basal(:,:)
+    runoff(:,:) = runoff(:,:) !- basal(:,:)
     !Pedro
 
   end subroutine ocean_generic_sbc

@@ -2703,7 +2703,7 @@ subroutine eta_and_pbot_tendency(Time, pme, river, basal, Ext_mode, use_blobs)
          do i=isd,ied       
             Ext_mode%deta_dt(i,j) = Grd%tmask(i,j,1)                              &
                  *rho0r*( Ext_mode%conv_rho_ud_t(i,j,tau) + pme(i,j) + river(i,j) &
-                 + basal(i,j) + Ext_mode%source(i,j) ) !Pedro
+                 + Ext_mode%source(i,j) ) !Pedro
          enddo
       enddo
       if (use_blobs) then
@@ -2720,7 +2720,7 @@ subroutine eta_and_pbot_tendency(Time, pme, river, basal, Ext_mode, use_blobs)
          do i=isd,ied       
             Ext_mode%dpbot_dt(i,j) = Ext_mode%dpatm_dt(i,j) + grav*Grd%tmask(i,j,1) &
                  *( Ext_mode%conv_rho_ud_t(i,j,tau) + pme(i,j) + river(i,j)         &
-                 + basal(i,j) + Ext_mode%source(i,j) ) !Pedro
+                 + Ext_mode%source(i,j) ) !Pedro
          enddo
       enddo
       if (use_blobs) then
@@ -3350,7 +3350,7 @@ subroutine pred_corr_tropic_depth_bgrid (Time, Thickness, Ext_mode, patm, pme, r
         ! smoothing eta_t, not for smoothing eta_t_bt.
         !Pedro
         !steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
-        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + basal(i,j) + &
+        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + &
                               Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
         !Pedro
         if (use_blobs) then
@@ -3747,7 +3747,7 @@ subroutine pred_corr_tropic_depth_cgrid (Time, Thickness, Ext_mode, patm, pme, r
         ! smoothing eta_t, not for smoothing eta_t_bt.
         !Pedro
         !steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
-        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + basal (i,j) + &
+        steady_forcing(i,j) = Grd%tmask(i,j,1)*( pme(i,j) + river(i,j) + &
                               Ext_mode%source(i,j) - Ext_mode%eta_smooth(i,j))
         !Pedro
         if (use_blobs) then
@@ -4122,7 +4122,7 @@ subroutine pred_corr_tropic_press_bgrid (Time, Thickness, Ext_mode, pme, river, 
         !*(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
         !+ Ext_mode%dpatm_dt(i,j))
         steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
-        *(grav*(pme(i,j) + river(i,j) + basal (i,j) + Ext_mode%source(i,j) &
+        *(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) &
         - Ext_mode%pbot_smooth(i,j)) + Ext_mode%dpatm_dt(i,j))
         !Pedro
         if (use_blobs) then
@@ -4512,7 +4512,7 @@ subroutine pred_corr_tropic_press_cgrid (Time, Thickness, Ext_mode, pme, river, 
         !*(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) - Ext_mode%pbot_smooth(i,j)) &
         !+ Ext_mode%dpatm_dt(i,j))
         steady_forcing(i,j) = Grd%tmask(i,j,1)                                            &
-        *(grav*(pme(i,j) + river(i,j) + basal(i,j) + Ext_mode%source(i,j) &
+        *(grav*(pme(i,j) + river(i,j) + Ext_mode%source(i,j) &
         - Ext_mode%pbot_smooth(i,j)) + Ext_mode%dpatm_dt(i,j))
         !Pedro
         if (use_blobs) then
@@ -5175,7 +5175,7 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river, basal)
             pme_total   = pme_total   + Grd%dat(i,j)*Grd%tmask(i,j,1)*pme(i,j)*Grd%obc_tmask(i,j)
             river_total = river_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*river(i,j)*Grd%obc_tmask(i,j)
             !Pedro
-            basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)*Grd%obc_tmask(i,j)
+            !basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)*Grd%obc_tmask(i,j)
             !Pedro
             mass_total  = mass_total  + Grd%dat(i,j)*Grd%tmask(i,j,1) &
                                        *(Ext_mode%pbot_t(i,j,tau)-patm(i,j))*Grd%obc_tmask(i,j)
@@ -5188,7 +5188,7 @@ subroutine barotropic_integrals (Time, Ext_mode, patm, pme, river, basal)
             pme_total   = pme_total   + Grd%dat(i,j)*Grd%tmask(i,j,1)*pme(i,j)
             river_total = river_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*river(i,j)
             !Pedro
-            basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)
+            !basal_total = basal_total + Grd%dat(i,j)*Grd%tmask(i,j,1)*basal(i,j)
             !Pedro
             mass_total  = mass_total  + Grd%dat(i,j)*Grd%tmask(i,j,1) &
                                        *(Ext_mode%pbot_t(i,j,tau)-patm(i,j))
@@ -5968,7 +5968,7 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%conv_rho_ud_t(i,j,tau)
             !Pedro
             !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j))
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j) + basal(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j) !+ basal(i,j))
             !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%source(i,j)
 
@@ -5991,7 +5991,7 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%conv_rho_ud_t(i,j,tau)
             !Pedro
             !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j))
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j) + basal(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j) !+ basal(i,j))
             !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%source(i,j)
 
