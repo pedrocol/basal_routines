@@ -625,6 +625,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tbasal_sum = tbasal_sum + tbasal*delta(k)
                     enddo
 
+                    T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
+
                  endif !Do nothing for salt and age
 
                  do k=misfkt(i,j),misfkb(i,j)
