@@ -5968,7 +5968,7 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%conv_rho_ud_t(i,j,tau)
             !Pedro
             !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j))
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j) !+ basal(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*(pme(i,j) + river(i,j)) !+ basal(i,j))
             !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rhobarz_inv*Ext_mode%source(i,j)
 
@@ -5991,7 +5991,7 @@ subroutine eta_terms_diagnose(Time, Dens, Thickness, Ext_mode, pme, river, basal
             eta_dynamic_tend(i,j)   =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%conv_rho_ud_t(i,j,tau)
             !Pedro
             !eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j))
-            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j) !+ basal(i,j))
+            eta_water_tend(i,j)     =  Grd%tmask(i,j,1)*dtime*rho0r*(pme(i,j) + river(i,j)) !+ basal(i,j))
             !Pedro
             eta_source_tend(i,j)    =  Grd%tmask(i,j,1)*dtime*rho0r*Ext_mode%source(i,j)
 
