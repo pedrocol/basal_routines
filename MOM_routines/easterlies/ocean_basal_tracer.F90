@@ -437,11 +437,11 @@ end subroutine basal_tracer_source
 subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt, &
                                  misfkt, misfkb, Dens, basal3d)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
-  type(ocean_time_type),          intent(in)    :: Time
-  type(ocean_time_steps_type),    intent(in)    :: Time_steps
-  type(ocean_thickness_type),     intent(in)    :: Thickness
-  type(ocean_prog_tracer_type),   intent(inout) :: T_prog(:)
-  real, dimension(isd:,jsd:),     intent(inout)    :: basal_i
+  type(ocean_time_type),          intent(in)     :: Time
+  type(ocean_time_steps_type),    intent(in)     :: Time_steps
+  type(ocean_thickness_type),     intent(inout)  :: Thickness
+  type(ocean_prog_tracer_type),   intent(inout)  :: T_prog(:)
+  real, dimension(isd:,jsd:),     intent(inout)  :: basal_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
   real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
