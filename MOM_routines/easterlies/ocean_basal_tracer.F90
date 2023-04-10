@@ -389,7 +389,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
-  type(ocean_thickness_type),     intent(in)      :: Thickness
+  type(ocean_thickness_type),     intent(inout)      :: Thickness
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: basal
