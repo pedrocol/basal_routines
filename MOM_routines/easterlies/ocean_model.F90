@@ -1785,7 +1785,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_eta_and_pbot_tendency)
        !Pedro
        !call eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
-       call eta_and_pbot_tendency(Time, pme, river, basal, Ext_mode, use_blobs)
+       call eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
        !Pedro
        call mpp_clock_end(id_eta_and_pbot_tendency)
 
@@ -1818,8 +1818,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !Pedro
           !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
           !                              Lagrangian_system, use_blobs)
-          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                        Adv_vel, Lagrangian_system, basal3d, use_blobs)
+          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, &
+                                        Adv_vel, Lagrangian_system, use_blobs)
           !Pedro
           call mpp_clock_end(id_advect)
 
@@ -1854,8 +1854,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           !Pedro
           !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
           !                              Lagrangian_system, use_blobs)
-          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, basal, &
-                                        Adv_vel, Lagrangian_system, basal3d, use_blobs)
+          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, rivera, &
+                                        Adv_vel, Lagrangian_system, use_blobs)
           !Pedro
           call mpp_clock_end(id_advect)
 
@@ -1878,7 +1878,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           call mpp_clock_begin(id_advect_gotm) 
           !Pedro
           !call advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
-          call advect_gotm_compute(Time, Adv_vel, Thickness, pme, river, basal)
+          call advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
           !Pedro
           call mpp_clock_end(id_advect_gotm) 
        endif
@@ -1929,8 +1929,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_eta_and_pbot_diagnose)
        !Pedro
        !call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, Ext_mode, Lagrangian_system, use_blobs)
-       call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, basal, &
-                                  Ext_mode, Lagrangian_system, use_blobs)
+       call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, Ext_mode, Lagrangian_system, use_blobs)
        !Pedro
        call mpp_clock_end(id_eta_and_pbot_diagnose)
 
@@ -1976,19 +1975,19 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_explicit_accel_a)
        if(tendency == TWO_LEVEL) then
           !Pedro
-          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-          !     Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, upme, uriver)
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-               Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, basal, &
-               upme, uriver, ubasal, basal3d, ubasal3d)
+               Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, upme, uriver)
+          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
+          !     Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, basal, &
+          !     upme, uriver, ubasal, basal3d, ubasal3d)
           !Pedro
        elseif(tendency == THREE_LEVEL) then 
           !Pedro
-          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-          !     Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, upme, uriver)
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-               Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, basal, & 
-               upme, uriver, ubasal, basal3d, ubasal3d)
+               Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, upme, uriver)
+          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
+          !     Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, basal, & 
+          !     upme, uriver, ubasal, basal3d, ubasal3d)
           !Pedro
        endif
        call mpp_clock_end(id_explicit_accel_a)
@@ -2004,7 +2003,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     !call update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
     !                              Ext_mode, patm, pme, river, use_blobs)
     call update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
-                                  Ext_mode, patm, pme, river, basal, use_blobs)
+                                  Ext_mode, patm, pme, river, use_blobs)
     !Pedro
     call mpp_clock_end(id_barotropic_update)
 
@@ -2057,9 +2056,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
     ! compute energy analysis diagnostic
     !Pedro 
-    call energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens, pme, river, basal, &
-                          upme, uriver, ubasal, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity, &
-                          basal3d, ubasal3d)
+    call energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens, pme, river, &
+                          upme, uriver, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity)
     !Pedro
     ! perform some numerical diagnostics (e.g., tracer and mass conservation, CFL checks, etc.)
     call mpp_clock_begin(id_diagnostics)

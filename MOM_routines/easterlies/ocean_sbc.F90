@@ -3840,6 +3840,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_temp)%trunoff(i,j)*runoff(i,j)
                 T_prog(index_temp)%calving_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tcalving(i,j)*calving(i,j)
+                !Temperaty set of basal_tracer_flux
                 T_prog(index_temp)%basal_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
              enddo
@@ -5606,7 +5607,6 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
             wrk1_2d(i,j) =   T_prog(index_temp)%conversion*(                                              &
                    T_prog(index_temp)%stf(i,j)                                                            &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                             &
-                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                             &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                            &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j))*T_prog(index_temp)%tpme(i,j) )
          enddo
@@ -5623,7 +5623,6 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
                    T_prog(index_temp)%conversion*(                                                        &
                    T_prog(index_temp)%stf(i,j)                                                            &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                             &
-                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                             &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                            &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j))*T_prog(index_temp)%tpme(i,j) )
          enddo
@@ -5639,7 +5638,6 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
             wrk1_2d(i,j) = T_prog(index_temp)%conversion*(                                               &
                    T_prog(index_temp)%stf(i,j)                                                           &
                  + T_prog(index_temp)%runoff_tracer_flux(i,j)                                            &
-                 + T_prog(index_temp)%basal_tracer_flux(i,j)                                            &
                  + T_prog(index_temp)%calving_tracer_flux(i,j)                                           &
                  + (frozen_precip(i,j)+liquid_precip(i,j)+evaporation(i,j))*T_prog(index_temp)%tpme(i,j) )
          enddo
