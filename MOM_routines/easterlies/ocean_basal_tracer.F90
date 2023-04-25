@@ -475,7 +475,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
   integer :: stdoutunit,stdlogunit
   character(len=128) :: name
-  real    :: sal, press
+  real    :: sal, press, delta_s
   real    :: c_p = 3974.0
   real    :: L_f = 3.34*10**5
   stdoutunit=stdout();stdlogunit=stdlog()
@@ -601,121 +601,55 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            !do n=1,num_prog_tracers
            n = index_temp
 
-              gade_line = 2
+              gade_line = 0
 
-              if (gade_line == 2 ) then
+              tbasal = 0.0
+              tbasal_sum = 0.0
+              tracernew(:) = 0.0
 
-                 tbasal = 0.0
-                 tbasal_sum = 0.0
-                 tracernew(:) = 0.0
+              if ( trim(T_prog(n)%name) == 'temp' ) then
+                 zextra=0.0
+                 do k=misfkt(i,j),misfkb(i,j)
+                    tracernew(k) = 0.0
 
-                 if ( trim(T_prog(n)%name) == 'temp' ) then
-                    zextra=0.0
-                    do k=misfkt(i,j),misfkb(i,j)
-                       tracernew(k) = 0.0
+                    basal3d(i,j,k) = fwfisf(i,j)*delta(k)
+                    zinsert = basal3d(i,j,k)*dtime
 
+                    if (gade_line = 0 ) then
+                       tracernew(k) = T_prog(n)%field(i,j,k,tau) - &
+                                      dtime * basal3d(i,j,k) / Thickness%rho_dzt(i,j,k,tau) * L_f / c_p
+                       !Equivalent tbasal using heat flux formulation
+                       tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
+                                T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert
+
+                    else
                        tbasal =  - L_f / c_p
-
-                       basal3d(i,j,k) = fwfisf(i,j)*delta(k)
-                       zinsert = basal3d(i,j,k)*dtime
                        tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
                                        tbasal*zinsert) / (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    endif
 
-
-                       tbasal_sum = tbasal_sum + tbasal*delta(k)
-                    enddo
-
-                    T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
-
-                 endif !Do nothing for salt and age
-
-                 do k=misfkt(i,j),misfkb(i,j)
-                    !Dilution is performed via mass add
-                    Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  basal3d(i,j,k)
+                    tbasal_sum = tbasal_sum + tbasal*delta(k)
                  enddo
-
-                 do k=misfkt(i,j),misfkb(i,j)
-                    T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency
-                 enddo
-
-                 !Update tendency
-                 do k=misfkt(i,j),misfkb(i,j)
-                    T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
-                 enddo
-
-              elseif (gade_line == 1 ) then
-
-                 zextra=0.0
-
-                 tbasal_sum = 0.0
-
-                 if ( trim(T_prog(n)%name) == 'temp' ) then
-                    sal = T_prog(index_salt)%field(i,j,k,tau)
-                    !sal = 0.0
-                    press = Dens%pressure_at_depth(i,j,k)
-                    call frz_preteos10(tfreezing, press, sal)
-                    !tbasal = tfreezing
-                    tfreezing = contemp_from_pottemp(sal,tfreezing)
-                    tbasal = min(tfreezing,T_prog(index_temp)%field(i,j,k,tau))
-                 endif
-                 if ( trim(T_prog(n)%name) == 'salt' ) tbasal = 0.0
-                 !tbasal = T_prog(n)%triver(i,j)
-
-                 method = 1
-
-                 if ( method == 0 ) then
- 
-                    do k=misfkb(i,j),misfkt(i,j),-1
-  
-                       tracernew(k) = 0.0
-
-                       if (k.eq.misfkb(i,j)) then
-                          tracerextra=0.0
-                       else
-                          tracerextra = tracernew(k+1)
-                       endif
-
-                       zinsert = fwfisf(i,j)*dtime*delta(k)
-                       tracernew(k) = (tracerextra*zextra + T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
-                                      tbasal*zinsert) / (zextra+Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                       basal3d(i,j,k) = ( zextra + zinsert ) / ( dtime*delta(k) ) !Equivalente basal flux
-                       zextra=zextra+zinsert
-
-                       tbasal_sum = tbasal_sum + tbasal*delta(k)
-                    enddo
-
-                    k=misfkt(i,j) !Treatment at the first level
-                    T_prog(n)%wrk1(i,j,k) = (tracernew(k)*(Thickness%rho_dzt(i,j,k,tau)+fwfisf(i,j)*dtime) -&
-                                            T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau))/dtime
-
-                    firstlev = misfkt(i,j)+1
-                 elseif ( method == 1 ) then
-                    do k=misfkt(i,j),misfkb(i,j)
-                       basal3d(i,j,k) = fwfisf(i,j)*delta(k)
-                       zinsert = fwfisf(i,j)*dtime*delta(k)
-                       tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + tbasal*zinsert) / &
-                                      (Thickness%rho_dzt(i,j,k,tau)+zinsert)
-                       tbasal_sum = tbasal_sum + tbasal*delta(k)
-                    enddo
-                    firstlev = misfkt(i,j)                 
-                 endif !method
 
                  T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
-  
-                 do k=firstlev,misfkb(i,j)
-                    T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency 
-                 enddo
+                 T_prog(index_temp)%basal_tracer_flux(i,j)= &
+                   Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
 
-                 if(debug_all_in_top_cell) then
-                     k=1
-                     T_prog(n)%wrk1(i,j,:) = 0.0
-                     T_prog(n)%wrk1(i,j,k) = Grd%tmask(i,j,k)*fwfisf(i,j)*T_prog(n)%triver(i,j)
-                 endif
+              endif !Do nothing for salt and age
 
-                 do k=misfkt(i,j),misfkb(i,j)
-                    T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
-                 enddo
-              endif !gade line    
+              do k=misfkt(i,j),misfkb(i,j)
+                 !Dilution is performed via mass add
+                 Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  basal3d(i,j,k)
+              enddo
+
+              do k=misfkt(i,j),misfkb(i,j)
+                 T_prog(n)%wrk1(i,j,k) = Thickness%rho_dzt(i,j,k,tau)*(tracernew(k) - T_prog(n)%field(i,j,k,tau))/dtime !Tendency
+              enddo
+
+              !Update tendency
+              do k=misfkt(i,j),misfkb(i,j)
+                 T_prog(n)%th_tendency(i,j,k) = T_prog(n)%th_tendency(i,j,k) + T_prog(n)%wrk1(i,j,k)
+              enddo
            !enddo !n
         endif ! fwfisf > 0
      enddo !i
