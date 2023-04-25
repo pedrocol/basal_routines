@@ -615,7 +615,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                     basal3d(i,j,k) = fwfisf(i,j)*delta(k)
                     zinsert = basal3d(i,j,k)*dtime
 
-                    if (gade_line = 0 ) then
+                    if (gade_line == 0 ) then
                        tracernew(k) = T_prog(n)%field(i,j,k,tau) - &
                                       dtime * basal3d(i,j,k) / Thickness%rho_dzt(i,j,k,tau) * L_f / c_p
                        !Equivalent tbasal using heat flux formulation
@@ -632,8 +632,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                  enddo
 
                  T_prog(n)%tbasal(i,j) = tbasal_sum !average for ocean_diagnostics
-                 T_prog(index_temp)%basal_tracer_flux(i,j)= &
-                   Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
+                 T_prog(n)%basal_tracer_flux(i,j)= &
+                   Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*fwfisf(i,j)
 
               endif !Do nothing for salt and age
 
