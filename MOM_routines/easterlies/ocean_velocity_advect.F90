@@ -112,9 +112,6 @@ integer :: id_vadv_v=-1
 integer :: id_surf_accel(2)=-1
 integer :: id_pme_u  =-1
 integer :: id_river_u=-1
-!Pedro
-integer :: id_basal_u=-1
-!Pedro
 
 #include <ocean_memory.h>
 
@@ -292,11 +289,7 @@ subroutine ocean_velocity_advect_init(Grid, Domain, Time, obc, hor_grid, debug)
   id_river_u       = register_diag_field ('ocean_model', 'river_u', Grd%vel_axes_uv(1:2), &
                      Time%model_time, 'river on u-cell', '(kg/m^3)*(m/s)',                &
                      missing_value=missing_value, range=(/-1e10,1e10/))
-  !Pedro
-  id_basal_u       = register_diag_field ('ocean_model', 'basal_u', Grd%vel_axes_uv(1:2), &
-                     Time%model_time, 'basal on u-cell', '(kg/m^3)*(m/s)',                &
-                     missing_value=missing_value, range=(/-1e10,1e10/))
-  !Pedro
+
 
 end subroutine ocean_velocity_advect_init
 ! </SUBROUTINE> NAME="ocean_velocity_advect_init"
@@ -622,30 +615,21 @@ end subroutine horz_advection_upwind
 ! </DESCRIPTION>
 ! 
 subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
-                                      basal, upme, uriver, ubasal, &
-                                      basal3d, ubasal3d, energy_analysis_step)
+                                      upme, uriver, energy_analysis_step)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel
   type(ocean_velocity_type),    intent(inout) :: Velocity
   real, dimension(isd:,jsd:),   intent(in)    :: pme
-  !real, dimension(isd:,jsd:),   intent(in)    :: river
-  real, dimension(isd:,jsd:),   intent(inout)    :: river
-  !real, dimension(isd:,jsd:),   intent(in)    :: basal !Pedro
-  real, dimension(isd:,jsd:),   intent(inout)    :: basal !Pedro
+  real, dimension(isd:,jsd:),   intent(in)    :: river
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
-  real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
-  real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
-  real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
   logical,                      intent(in)    :: energy_analysis_step
 
   real, dimension(isd:ied,jsd:jed)   :: pme_u
   real, dimension(isd:ied,jsd:jed)   :: river_u
-  real, dimension(isd:ied,jsd:jed)   :: basal_u !Pedro
-  real, dimension(isd:ied,jsd:jed,nk)   :: basal3d_u !Pedro
   real, dimension(isd:ied,jsd:jed,2) :: surf_accel 
-  integer :: i, j, n, k
+  integer :: i, j, n
 
 
   if ( .not. module_is_initialized ) then 
@@ -663,27 +647,13 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   river_u  = 0.0
   pme_u    = REMAP_BT_TO_BU(pme(:,:))
   river_u  = REMAP_BT_TO_BU(river(:,:))
-  !Pedro
-  basal_u  = 0.0
-  basal_u  = REMAP_BT_TO_BU(basal(:,:))
-  basal3d_u  = 0.0
-  do j=jsc,jec
-     do i=isc,iec
-        do k=1,nk
-           basal3d_u(:,:,k)  = REMAP_BT_TO_BU(basal3d(:,:,k))
-        enddo   
-     enddo
-  enddo
-  !Pedro
 
   if(advection_scheme==VEL_ADVECT_2ND_ORDER) then 
     call vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, river_u, &
-                                 basal, basal_u, upme, uriver, ubasal, &
-                                 basal3d, ubasal3d, basal3d_u, energy_analysis_step) !Pedro
+                                 upme, uriver, energy_analysis_step)
   elseif(advection_scheme==VEL_ADVECT_UPWIND) then
-    call vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_u,   &
-                               upme, uriver, ubasal, &
-                               basal3d, ubasal3d, basal3d_u, energy_analysis_step) !Pedro
+    call vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u,   &
+                               upme, uriver, energy_analysis_step)
   endif 
   
 
@@ -693,9 +663,7 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
       do n=1,2
          do j=jsc,jec
             do i=isc,iec
-               surf_accel(i,j,n) = Grd%umask(i,j,1)*(pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n) ) !& 
-                                                     !+ basal3d_u(i,j,1)*ubasal3d(i,j,n,1)) !Pedro
-                                                     !+ basal_u(i,j)*ubasal(i,j,n)) !Pedro
+               surf_accel(i,j,n) = Grd%umask(i,j,1)*(pme_u(i,j)*upme(i,j,n) + river_u(i,j)*uriver(i,j,n))
             enddo
          enddo
       enddo
@@ -705,7 +673,6 @@ subroutine vert_advection_of_velocity(Time, Adv_vel, Velocity, pme, river, &
   call diagnose_2d_u(Time, Grd, id_surf_accel(2), surf_accel(:,:,2))
   call diagnose_2d_u(Time, Grd, id_pme_u, pme_u(:,:))
   call diagnose_2d_u(Time, Grd, id_river_u, river_u(:,:))
-  call diagnose_2d_u(Time, Grd, id_basal_u, basal_u(:,:)) !Pedro
 
 end subroutine vert_advection_of_velocity
 ! </SUBROUTINE> NAME="vert_advection_of_velocity"
@@ -730,8 +697,7 @@ end subroutine vert_advection_of_velocity
 ! </DESCRIPTION>
 ! 
 subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, river_u, &
-                                   basal, basal_u, upme, uriver, ubasal, &
-                                   basal3d, ubasal3d, basal3d_u, energy_analysis_step)
+                                   upme, uriver, energy_analysis_step)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel
@@ -740,17 +706,9 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
   real, dimension(isd:,jsd:),   intent(in)    :: pme_u
   real, dimension(isd:,jsd:),   intent(in)    :: river
   real, dimension(isd:,jsd:),   intent(in)    :: river_u
-  !Pedro
-  real, dimension(isd:,jsd:),   intent(in)    :: basal
-  real, dimension(isd:,jsd:),   intent(in)    :: basal_u
-  !Pedro
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
-  real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
   logical,                      intent(in)    :: energy_analysis_step
-  real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
-  real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
-  real, dimension(isd:,jsd:,:),   intent(in)       :: basal3d_u
 
   real, dimension(isd:ied,jsd:jed) :: ft1
   real, dimension(isd:ied,jsd:jed) :: ft2
@@ -772,11 +730,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
         ! fresh water contribution at the surface 
         do j=jsc,jec
            do i=isc,iec
-              !Pedro
-              !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) 
-              !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) -basal_u(i,j)*ubasal(i,j,n) 
-              ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n)
-              !Pedro
+              ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) 
               ft2(i,j) = 0.0
            enddo
         enddo
@@ -785,8 +739,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
            kp1 = min(k+1,nk)
            do j=jsc,jec
               do i=isc,iec
-                 ft2(i,j) = Adv_vel%wrho_bu(i,j,k)*0.5*(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) !&
-                            !+ basal3d_u(i,j,k)*ubasal3d(i,j,k,n)
+                 ft2(i,j) = Adv_vel%wrho_bu(i,j,k)*0.5*(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau))
                  wrk1_v(i,j,k,n) = Grd%umask(i,j,k)*(ft1(i,j)-ft2(i,j))
                  ft1(i,j) = ft2(i,j)
               enddo
@@ -806,13 +759,8 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
      ! fresh water contribution at the surface 
      do j=jsc,jec
         do i=isc,iec
-           !Pedro
-           !ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i+1,j))  *(upme(i,j,n)  +upme(i,j-1,n)  ) &
-           !           -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i+1,j))*(uriver(i,j,n)+uriver(i,j-1,n)) 
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i+1,j))  *(upme(i,j,n)  +upme(i,j-1,n)  ) &
-                      -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i+1,j))*(uriver(i,j,n)+uriver(i,j-1,n))
-                      !-onefourth*Grd%tmasken(i,j,1,n)*(basal(i,j)+basal(i+1,j))*(ubasal(i,j,n)+ubasal(i,j-1,n)) 
-           !Pedro
+                      -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i+1,j))*(uriver(i,j,n)+uriver(i,j-1,n)) 
            ft2(i,j) = 0.0
         enddo
      enddo
@@ -821,9 +769,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
         do j=jsc,jec
            do i=isc,iec
               ft2(i,j) = onefourth*(Adv_vel%wrho_bt(i,j,k)+Adv_vel%wrho_bt(i+1,j,k)) &
-                                  *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) !&
-                         !+onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,k)+basal3d(i+1,j,k))&
-                         !         *(ubasal3d(i,j,k,n)+ubasal3d(i,j-1,k,n))
+                                  *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau))
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
@@ -836,13 +782,8 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
      ! fresh water contribution at the surface 
      do j=jsc,jec
         do i=isc,iec
-           !Pedro
-           !ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i,j+1))  *(upme(i,j,n)  +upme(i-1,j,n)  ) &
-           !           -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) 
            ft1(i,j) = -onefourth*Grd%tmasken(i,j,1,n)*(pme(i,j)  +pme(i,j+1))  *(upme(i,j,n)  +upme(i-1,j,n)  ) &
-                      -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n))
-                      !-onefourth*Grd%tmasken(i,j,1,n)*(basal(i,j)+basal(i,j+1))*(ubasal(i,j,n)+ubasal(i-1,j,n)) 
-           !Pedro
+                      -onefourth*Grd%tmasken(i,j,1,n)*(river(i,j)+river(i,j+1))*(uriver(i,j,n)+uriver(i-1,j,n)) 
            ft2(i,j) = 0.0
         enddo
      enddo
@@ -851,9 +792,7 @@ subroutine vert_advection_centered(Time, Adv_vel, Velocity, pme, pme_u, river, r
         do j=jsc,jec
            do i=isc,iec
               ft2(i,j) = onefourth*(Adv_vel%wrho_bt(i,j,k)+Adv_vel%wrho_bt(i,j+1,k)) &
-                                  *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau)) !&
-                         !+ onefourth*Grd%tmasken(i,j,1,n)*(basal3d(i,j,k)+basal3d(i,j+1,k)) &
-                         !         *(ubasal3d(i,j,k,n)+ubasal3d(i-1,j,k,n))
+                                  *(Velocity%u(i,j,k,n,tau) + kmask(k)*Velocity%u(i,j,kp1,n,tau))
               wrk1_v(i,j,k,n) = Grd%tmasken(i,j,k,n)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
@@ -920,23 +859,17 @@ end subroutine vert_advection_centered
 !
 ! </DESCRIPTION>
 ! 
-subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_u, &
-                                 upme, uriver, ubasal, &
-                                 basal3d, ubasal3d, basal3d_u, energy_analysis_step)
+subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, &
+                                 upme, uriver, energy_analysis_step)
 
   type(ocean_time_type),        intent(in)    :: Time
   type(ocean_adv_vel_type),     intent(in)    :: Adv_vel
   type(ocean_velocity_type),    intent(inout) :: Velocity
   real, dimension(isd:,jsd:),   intent(in)    :: pme_u
   real, dimension(isd:,jsd:),   intent(in)    :: river_u
-  real, dimension(isd:,jsd:),   intent(in)    :: basal_u !Pedro
   real, dimension(isd:,jsd:,:), intent(in)    :: upme
   real, dimension(isd:,jsd:,:), intent(in)    :: uriver 
-  real, dimension(isd:,jsd:,:), intent(in)    :: ubasal !Pedro
   logical,                      intent(in)    :: energy_analysis_step
-  real, dimension(isd:,jsd:,:,:), intent(in)       :: ubasal3d
-  real, dimension(isd:,jsd:,:),   intent(inout)    :: basal3d
-  real, dimension(isd:,jsd:,:),   intent(in)       :: basal3d_u !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: ft1
   real, dimension(isd:ied,jsd:jed) :: ft2
@@ -957,11 +890,7 @@ subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_
      ! fresh water contribution at the surface 
      do j=jsc,jec
         do i=isc,iec
-           !Pedro
-           !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n)
-           !ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n) -basal_u(i,j)*ubasal(i,j,n)
            ft1(i,j) = -pme_u(i,j)*upme(i,j,n) -river_u(i,j)*uriver(i,j,n)
-           !Pedro
            ft2(i,j) = 0.0
         enddo
      enddo
@@ -974,8 +903,7 @@ subroutine vert_advection_upwind(Time, Adv_vel, Velocity, pme_u, river_u, basal_
               wpos     = vel + abs(vel) 
               wneg     = vel - abs(vel) 
               ft2(i,j) = (wneg*Velocity%u(i,j,k,n,taum1) + kmask(k)*wpos*Velocity%u(i,j,kp1,n,taum1)) &
-                         *Grd%umask(i,j,k)*Grd%umask(i,j,kp1) !&
-                         !+ basal3d_u(i,j,k)*ubasal3d(i,j,k,n) 
+                         *Grd%umask(i,j,k)*Grd%umask(i,j,kp1) 
               wrk1_v(i,j,k,n) = Grd%umask(i,j,k)*(ft1(i,j)-ft2(i,j))
               ft1(i,j) = ft2(i,j)
            enddo
