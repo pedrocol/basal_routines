@@ -3700,6 +3700,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
           enddo
       endif
 
+
       ! Set the temperature flux associated with the water 
       ! entering ocean from land. This flux equals to the mass 
       ! flux of water times the temperature of water, whether 
@@ -3810,8 +3811,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                   T_prog(index_temp)%trunoff(i, j) &
                     = max(runoff_temp_min, data(i, j))
                   T_prog(index_temp)%tcalving(i, j) &
-                    = max(runoff_temp_min, data(i, j)) !Pedro
-                    != T_prog(index_temp)%field(i, j, 1, tau)
+                    = T_prog(index_temp)%field(i, j, 1, tau)
                   T_prog(index_temp)%runoff_tracer_flux(i, j) &
                     = Grd%tmask(i, j, 1) * T_prog(index_temp)%trunoff(i,j) &
                         * runoff(i, j)
@@ -3835,13 +3835,12 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 T_prog(index_temp)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau))
                 T_prog(index_temp)%tcalving(i,j) = &
-                   max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau)) !Pedro
-                   !T_prog(index_temp)%field(i,j,1,tau)
+                   T_prog(index_temp)%field(i,j,1,tau)
                 T_prog(index_temp)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%trunoff(i,j)*runoff(i,j)
                 T_prog(index_temp)%calving_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tcalving(i,j)*calving(i,j)
-                !Temperaty set of basal_tracer_flux
+                !Temp set of basal_tracer_flux
                 T_prog(index_temp)%basal_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
              enddo
@@ -3854,8 +3853,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                  T_prog(index_redist_heat)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_redist_heat)%field(i,j,1,tau))
                  T_prog(index_redist_heat)%tcalving(i,j) = &
-                   max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau)) !Pedro
-                   !T_prog(index_redist_heat)%field(i,j,1,tau)
+                   T_prog(index_redist_heat)%field(i,j,1,tau)
                  T_prog(index_redist_heat)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_redist_heat)%calving_tracer_flux(i,j)= &
@@ -3873,8 +3871,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                  T_prog(index_added_heat)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_added_heat)%field(i,j,1,tau))
                  T_prog(index_added_heat)%tcalving(i,j) = &
-                   max(runoff_temp_min,T_prog(index_added_heat)%field(i,j,1,tau)) !Pedro
-                   !T_prog(index_added_heat)%field(i,j,1,tau)
+                   T_prog(index_added_heat)%field(i,j,1,tau)
                  T_prog(index_added_heat)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%trunoff(i,j)*runoff(i,j)
                  T_prog(index_added_heat)%calving_tracer_flux(i,j)= &
@@ -3894,7 +3891,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       ! the oceans to address limitations in their formulation. 
       ! We do not include such negative points when computing triver. 
       ! Also compute the salinity flux associated with liquid and solid runoff. 
-
       do j=jsc,jec
          do i=isc,iec
             tmp_runoff = max(0.0,runoff(i,j))
@@ -4003,6 +3999,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
           endif
 
       endif  ! for debug_water_fluxes
+
 
       ! set riverdiffuse to determine where to enhance diff_cbt 
       ! inside ocean_rivermix_mod.  this option is sometimes used
@@ -4424,7 +4421,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !--------compute surface tracer fluxes from tracer packages------------------- 
   !
   call ocean_tpm_sbc(Dom, Grd, T_prog(:), Time, Ice_ocean_boundary%fluxes, runoff, &
-                     basal, isc_bnd, iec_bnd, jsc_bnd, jec_bnd)
+                     isc_bnd, iec_bnd, jsc_bnd, jec_bnd)
 
 
   !--------send diagnostics------------------- 
