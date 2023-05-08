@@ -1673,7 +1673,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_begin(id_vmix)    
        call vert_mix_coeff(Time, Thickness, Velocity, T_prog(1:num_prog_tracers),&
             T_diag(1:num_diag_tracers), Dens, swflx, sw_frac_zt, pme,            &
-            river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave) !Pedro
+            river, visc_cbu, visc_cbt, diff_cbt, surf_blthick, do_wave)
        call mpp_clock_end(id_vmix)
 
        ! compute ocean tendencies from tracer packages
@@ -1783,12 +1783,9 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
        ! accumulate terms for surface height tendency or bottom pressure tendency 
        call mpp_clock_begin(id_eta_and_pbot_tendency)
-       !Pedro
-       !call eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
        call eta_and_pbot_tendency(Time, pme, river, Ext_mode, use_blobs)
-       !Pedro
        call mpp_clock_end(id_eta_and_pbot_tendency)
-
+       
        ! the embedded Lagrangian model requires a different order of operations
        if (use_blobs) then
 
@@ -1815,12 +1812,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           ! compute advective velocity components on faces of T-cells and U-cells.
           ! included are Thickness%mass_source and Thickness%rho_dzt_tendency
           call mpp_clock_begin(id_advect)
-          !Pedro
-          !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
-          !                              Lagrangian_system, use_blobs)
-          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, &
-                                        Adv_vel, Lagrangian_system, use_blobs)
-          !Pedro
+          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
+                                        Lagrangian_system, use_blobs)
           call mpp_clock_end(id_advect)
 
           call mpp_clock_begin(id_tcell_thickness)
@@ -1851,14 +1844,10 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
           ! compute advective velocity components on faces of T-cells and U-cells.
           ! included are Thickness%mass_source and Thickness%rho_dzt_tendency
           call mpp_clock_begin(id_advect)
-          !Pedro
-          !call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
-          !                              Lagrangian_system, use_blobs)
-          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, &
-                                        Adv_vel, Lagrangian_system, use_blobs)
-          !Pedro
+          call ocean_advection_velocity(Velocity, Time, Thickness, Dens, pme, river, Adv_vel, &
+                                        Lagrangian_system, use_blobs)
           call mpp_clock_end(id_advect)
-
+          
           ! update ocean free surface height or bottom pressure using "big time step"
           call mpp_clock_begin(id_eta_and_pbot_update)
           call eta_and_pbot_update(Time, Ext_mode)
@@ -1876,10 +1865,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! advect tke and diss for GOTM scheme in preparation for the next time step 
        if(Ocean_options%vertmix==VERTMIX_GOTM) then 
           call mpp_clock_begin(id_advect_gotm) 
-          !Pedro
-          !call advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
           call advect_gotm_compute(Time, Adv_vel, Thickness, pme, river)
-          !Pedro
           call mpp_clock_end(id_advect_gotm) 
        endif
 
@@ -1927,10 +1913,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! diagnose time=taup1 ocean free surface height or bottom pressure.
        ! also diagnose geodepth_zt and geodepth_zwt.
        call mpp_clock_begin(id_eta_and_pbot_diagnose)
-       !Pedro
-       !call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, Ext_mode, Lagrangian_system, use_blobs)
        call eta_and_pbot_diagnose(Time, Dens, Thickness, patm, pme, river, Ext_mode, Lagrangian_system, use_blobs)
-       !Pedro
        call mpp_clock_end(id_eta_and_pbot_diagnose)
 
        ! diagnose the geodepth of new blobs and the depth of old blobs
@@ -1973,22 +1956,12 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! compute just those pieces needed to force barotropic dynamics 
        Velocity%rossby_radius(:,:) = Grid%umask(:,:,1)*rossby_radius(:,:)
        call mpp_clock_begin(id_explicit_accel_a)
-       if(tendency == TWO_LEVEL) then
-          !Pedro
+       if(tendency == TWO_LEVEL) then 
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
                Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, upme, uriver)
-          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-          !     Lagrangian_system, Dens%rho(:,:,:,taup1), pme, river, basal, &
-          !     upme, uriver, ubasal, basal3d, ubasal3d)
-          !Pedro
        elseif(tendency == THREE_LEVEL) then 
-          !Pedro
           call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
                Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, upme, uriver)
-          !call ocean_explicit_accel_a(Velocity, Time, Adv_vel, Thickness, Dens,  &
-          !     Lagrangian_system, Dens%rho(:,:,:,tau), pme, river, basal, & 
-          !     upme, uriver, ubasal, basal3d, ubasal3d)
-          !Pedro
        endif
        call mpp_clock_end(id_explicit_accel_a)
 
@@ -1999,12 +1972,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
     ! update (udrho,vdrho) and eta_t_bar or pbot_t_bar using barotropic timesteps 
     call mpp_clock_begin(id_barotropic_update)
-    !Pedro
-    !call update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
-    !                              Ext_mode, patm, pme, river, use_blobs)
     call update_ocean_barotropic (Time, Dens, Thickness, Adv_vel, &
                                   Ext_mode, patm, pme, river, use_blobs)
-    !Pedro
     call mpp_clock_end(id_barotropic_update)
 
     ! remaining time explicit contributions to rho*dz*acceleration
@@ -2054,17 +2023,13 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     endif 
     call mpp_clock_end(id_velocity)
 
-    ! compute energy analysis diagnostic
-    !Pedro 
-    call energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens, pme, river, &
-                          upme, uriver, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity)
-    !Pedro
+    ! compute energy analysis diagnostic 
+    call energy_analysis (Time, Thickness, Ext_mode, Adv_vel, Dens, pme, river, upme, &
+                          uriver, visc_cbu, visc_cbt, visc_cbu_form_drag, Velocity)
+
     ! perform some numerical diagnostics (e.g., tracer and mass conservation, CFL checks, etc.)
     call mpp_clock_begin(id_diagnostics)
     !Pedro
-    !call ocean_diagnostics(Time, Thickness, T_prog(1:num_prog_tracers), T_diag(1:num_diag_tracers), &
-    !                       Adv_vel, Ext_mode, Dens, Velocity, &
-    !                       pme, melt, runoff, calving, visc_cbt, diff_cbt)
     call ocean_diagnostics(Time, Thickness, T_prog(1:num_prog_tracers), T_diag(1:num_diag_tracers), &
                            Adv_vel, Ext_mode, Dens, Velocity, &
                            pme, melt, runoff, calving, visc_cbt, diff_cbt, basal)

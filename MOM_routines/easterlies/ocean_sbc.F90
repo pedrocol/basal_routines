@@ -3669,7 +3669,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
              endif
           enddo
         enddo
-      endif
+      endif !endif for use_basal_module
       !Pedro
 
 
