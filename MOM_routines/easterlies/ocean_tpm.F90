@@ -1200,7 +1200,7 @@ end subroutine ocean_tpm_sfc_end  !}
 !
 
 subroutine ocean_tpm_sbc(Domain, Grid, T_prog, Time, Ice_ocean_boundary_fluxes, &
-     runoff, basal, isc_bnd, iec_bnd, jsc_bnd, jec_bnd)  !{
+     runoff, isc_bnd, iec_bnd, jsc_bnd, jec_bnd)  !{
 
 use coupler_types_mod, only: coupler_2d_bc_type
 
@@ -1222,7 +1222,6 @@ integer, intent(in)                                             :: iec_bnd
 integer, intent(in)                                             :: jsc_bnd
 integer, intent(in)                                             :: jec_bnd
 real, dimension(Domain%isd:,Domain%jsd:), intent(in)            :: runoff
-real, dimension(Domain%isd:,Domain%jsd:), intent(in)            :: basal !Pedro
 
 !
 !-----------------------------------------------------------------------
@@ -1276,8 +1275,7 @@ if (do_ocean_bgc_restore) then  !{
                              Grid, Ice_ocean_boundary_fluxes)
 endif  !}
 
-if (do_generic_tracer) call ocean_generic_sbc(Ice_ocean_boundary_fluxes,Domain%isd,Domain%jsd, T_prog, &
-                                              runoff, basal) !Pedro
+if (do_generic_tracer) call ocean_generic_sbc(Ice_ocean_boundary_fluxes,Domain%isd,Domain%jsd, T_prog, runoff)
 if (do_ocmip2_he) then  !{
   call ocmip2_he_sbc(Domain%isc, Domain%iec, Domain%jsc, Domain%jec,            &
                       isc_bnd, jsc_bnd,                                &
