@@ -2057,7 +2057,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   write (stdoutunit,'(a,es24.17,a)') ' Mass of river runoff liquid water input           = ',&
                                    runoff_input,' kg'
   !Pedro
-  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (runoff) liquid water input           = ',&
+  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (runoff) liquid water input         = ',&
                                    basal_input,' kg'
   !Pedro
   write (stdoutunit,'(a,es24.17,a)') ' Mass of sea ice melt input                        = ',&
@@ -2133,7 +2133,6 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
         do i=isc,iec
            if(basal(i,j) > 0) then
                tmp(i,j) = area_t(i,j)*conversion*dtime*basal(i,j)*T_prog(n)%tbasal(i,j)
-               !PRINT *, "diag", basal(i,j),T_prog(n)%tbasal(i,j), i, j, n
            endif
         enddo
      enddo
@@ -2280,7 +2279,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Heat input via river runoff                        = ',&
                                           tracer_input_runoff,' J'
          !Pedro
-         write (stdoutunit,'(a,es24.17,a)') ' Heat input via basal (runoff)                        = ',&
+         write (stdoutunit,'(a,es24.17,a)') ' Heat input via basal (runoff)                      = ',&
                                           tracer_input_basal,' J'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Heat input via calving land ice                    = ',&
@@ -2339,7 +2338,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Age input via river runoff                          = ',&
                                           tracer_input_runoff*mass_taup1_r,' yr'
          !Pedro
-         write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                          = ',&
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                        = ',&
                                           tracer_input_basal*mass_taup1_r,' yr'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Age input via calving land ice                      = ',&
@@ -2393,7 +2392,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via river runoff                       = ',&
                                           tracer_input_runoff,' kg'
          !Pedro
-         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                       = ',&
+         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                     = ',&
                                           tracer_input_runoff,' kg'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via calving land ice                   = ',&
@@ -2908,7 +2907,7 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
     allocate (pme_flux(isd:ied,jsd:jed))
     allocate (runoff_flux(isd:ied,jsd:jed))
     !Pedro
-    allocate (basal_flux(isd:ied,jsd:jed))
+    !allocate (basal_flux(isd:ied,jsd:jed))
     !Pedro
     allocate (source_flux(isd:ied,jsd:jed))
     allocate (calving_flux(isd:ied,jsd:jed))
@@ -2917,7 +2916,7 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
     pme_flux     = 0.0
     runoff_flux  = 0.0
     !Pedro
-    basal_flux   = 0.0
+    !basal_flux   = 0.0
     !Pedro
     source_flux  = 0.0
     calving_flux = 0.0
@@ -2955,7 +2954,7 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
             pme_flux(i,j)     = pme_flux(i,j)    + dteta*Grd%dat(i,j)*pme(i,j)
             runoff_flux(i,j)  = runoff_flux(i,j) + dteta*Grd%dat(i,j)*runoff(i,j)
             !Pedro
-            basal_flux(i,j)  = basal_flux(i,j) + dteta*Grd%dat(i,j)*basal(i,j)
+            !basal_flux(i,j)   = basal_flux(i,j)  + dteta*Grd%dat(i,j)*basal(i,j)
             !Pedro
             calving_flux(i,j) = calving_flux(i,j)+ dteta*Grd%dat(i,j)*calving(i,j)
             source_flux(i,j)  = source_flux(i,j) + dteta*Grd%dat(i,j)*Ext_mode%source(i,j)
@@ -2971,7 +2970,7 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
          pme_flux(:,:)     = pme_flux(:,:)*Grd%obc_tmask(:,:)
          runoff_flux(:,:)  = runoff_flux(:,:)*Grd%obc_tmask(:,:)
          !Pedro
-         basal_flux(:,:)  = basal_flux(:,:)*Grd%obc_tmask(:,:)
+         !basal_flux(:,:)  = basal_flux(:,:)*Grd%obc_tmask(:,:)
          !Pedro
          calving_flux(:,:) = calving_flux(:,:)*Grd%obc_tmask(:,:)
          source_flux(:,:)  = source_flux(:,:)*Grd%obc_tmask(:,:)
@@ -2983,16 +2982,16 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
       pme_input        = mpp_global_sum(Dom%domain2d,pme_flux(:,:),global_sum_flag)
       runoff_input     = mpp_global_sum(Dom%domain2d,runoff_flux(:,:),global_sum_flag)
       !Pedro
-      basal_input      = mpp_global_sum(Dom%domain2d,basal_flux(:,:),global_sum_flag)
+      !basal_input      = mpp_global_sum(Dom%domain2d,basal_flux(:,:),global_sum_flag)
       !Pedro
       calving_input    = mpp_global_sum(Dom%domain2d,calving_flux(:,:),global_sum_flag)
       source_input     = mpp_global_sum(Dom%domain2d,source_flux(:,:),global_sum_flag)
       mass_eta_smooth  = mpp_global_sum(Dom%domain2d,eta_smooth(:,:), global_sum_flag)
       mass_pbot_smooth = mpp_global_sum(Dom%domain2d,pbot_smooth(:,:),global_sum_flag)
       !Pedro
-      !mass_input       = pme_input + runoff_input + calving_input + source_input + mass_eta_smooth + mass_pbot_smooth
-      mass_input       = pme_input + runoff_input + calving_input + basal_input + source_input &
-                         + mass_eta_smooth + mass_pbot_smooth
+      mass_input       = pme_input + runoff_input + calving_input + source_input + mass_eta_smooth + mass_pbot_smooth
+      !mass_input       = pme_input + runoff_input + calving_input + basal_input + source_input &
+      !                   + mass_eta_smooth + mass_pbot_smooth
       !Pedro
 
       total_time      = (itte_mass-itts_mass+1)*dtts+epsln
@@ -3020,8 +3019,8 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
       write (stdoutunit,'(a,es24.17,a)') &
       ' Mass input via runoff fluxes over time interval      = ',runoff_input,' kg.'
       !Pedro
-      write (stdoutunit,'(a,es24.17,a)') &
-      ' Mass input via basal (runoff) fluxes over time interval      = ',basal_input,' kg.'
+      !write (stdoutunit,'(a,es24.17,a)') &
+      !' Mass input via basal fluxes over time interval       = ',basal_input,' kg.'
       !Pedro
       write (stdoutunit,'(a,es24.17,a)') &
       ' Mass input via ice calving fluxes over time interval = ',calving_input,' kg.'
@@ -3349,7 +3348,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by bottom fluxes                          = ',tracer_btf_input,' J.'
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by runoff and calving                     = ',tracer_runoff_input,' J.'
         !Pedro
-        write (stdoutunit,'(a,es24.17,a)') ' Heat input by basal                     = ',tracer_basal_input,' J.'
+        write (stdoutunit,'(a,es24.17,a)') ' Heat input by basal                                  = ',tracer_basal_input,' J.'
         !Pedro
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by precip-evap+calving                    = ',tracer_pme_input,' J.'
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by open boundaries                        = ',tracer_otf_input,' J.'
@@ -3384,7 +3383,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                          ' input by runoff and calving           = ',tracer_runoff_input,' kg*yr.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
-                         ' input by basal           = ',tracer_basal_input,' kg*yr.'
+                         ' input by basal                        = ',tracer_basal_input,' kg*yr.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by precip-evap+calving          = ',tracer_pme_input,' kg*yr.'
@@ -3421,7 +3420,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                          ' input by runoff and calving                      = ',tracer_runoff_input,' kg.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
-                         ' input by basal                      = ',tracer_basal_input,' kg.'
+                         ' input by basal                                   = ',tracer_basal_input,' kg.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by precip-evap+calving                     = ',tracer_pme_input,' kg.'
