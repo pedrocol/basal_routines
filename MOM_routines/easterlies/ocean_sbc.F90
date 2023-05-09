@@ -3811,7 +3811,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                   T_prog(index_temp)%trunoff(i, j) &
                     = max(runoff_temp_min, data(i, j))
                   T_prog(index_temp)%tcalving(i, j) &
-                    = T_prog(index_temp)%field(i, j, 1, tau)
+                    = max(runoff_temp_min, data(i, j)) !Pedro
+                    != T_prog(index_temp)%field(i, j, 1, tau)
                   T_prog(index_temp)%runoff_tracer_flux(i, j) &
                     = Grd%tmask(i, j, 1) * T_prog(index_temp)%trunoff(i,j) &
                         * runoff(i, j)
@@ -3835,7 +3836,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 T_prog(index_temp)%trunoff(i,j)  = &
                    max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau))
                 T_prog(index_temp)%tcalving(i,j) = &
-                   T_prog(index_temp)%field(i,j,1,tau)
+                   max(runoff_temp_min,T_prog(index_temp)%field(i,j,1,tau)) !Pedro
+                   !T_prog(index_temp)%field(i,j,1,tau)
                 T_prog(index_temp)%runoff_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%trunoff(i,j)*runoff(i,j)
                 T_prog(index_temp)%calving_tracer_flux(i,j)= &
