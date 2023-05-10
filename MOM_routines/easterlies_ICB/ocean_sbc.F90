@@ -1330,10 +1330,12 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         allocate(T_prog(n)%triver(isd:ied,jsd:jed))
         allocate(T_prog(n)%trunoff(isd:ied,jsd:jed))
         allocate(T_prog(n)%tbasal(isd:ied,jsd:jed)) !Pedro
+        allocate(T_prog(n)%ticb(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%tcalving(isd:ied,jsd:jed))
         allocate(T_prog(n)%runoff_tracer_flux(isd:ied,jsd:jed))
         allocate(T_prog(n)%calving_tracer_flux(isd:ied,jsd:jed))
         allocate(T_prog(n)%basal_tracer_flux(isd:ied,jsd:jed)) !Pedro
+        allocate(T_prog(n)%icb_tracer_flux(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%riverdiffuse(isd:ied,jsd:jed))
 #endif
 
@@ -1388,15 +1390,18 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         T_prog(n)%tpme                = 0.0
         T_prog(n)%triver              = 0.0
         T_prog(n)%trunoff             = 0.0
-        T_prog(n)%tbasal              = 0.0
+        T_prog(n)%tbasal              = 0.0 !Pedro
+        T_prog(n)%ticb                = 0.0 !Pedroc
         T_prog(n)%tcalving            = 0.0
         T_prog(n)%runoff_tracer_flux  = 0.0
         T_prog(n)%calving_tracer_flux = 0.0
-        T_prog(n)%basal_tracer_flux   = 0.0
+        T_prog(n)%basal_tracer_flux   = 0.0 !Pedro
+        T_prog(n)%icb_tracer_flux     = 0.0 !Pedro
         T_prog(n)%riverdiffuse        = 0.0
         if (n==index_salt) then
            T_prog(n)%trunoff(:,:) = runoff_salinity*Grd%tmask(:,:,1)
-           T_prog(n)%tbasal(:,:) = runoff_salinity*Grd%tmask(:,:,1)
+           T_prog(n)%tbasal(:,:)  = runoff_salinity*Grd%tmask(:,:,1) !Pedro
+           T_prog(n)%ticb(:,:)    = runoff_salinity*Grd%tmask(:,:,1) !Pedro
         endif 
 
   enddo ! for do n=1,num_prog_tracers
@@ -3255,7 +3260,7 @@ end subroutine ocean_sfc_end
 !
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
-                         pme, melt, river, runoff, basal, calving, upme, uriver,  &
+                         pme, melt, river, runoff, basal, icb, calving, upme, uriver,  &
                          swflx, swflx_vis, patm)
 
 
@@ -3272,6 +3277,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real, dimension(isd:,jsd:),     intent(inout) :: runoff
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: basal
+  real, dimension(isd:,jsd:),     intent(inout) :: icb
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: calving 
   real, dimension(isd:,jsd:),     intent(inout) :: swflx
@@ -3306,6 +3312,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   logical :: damp_coeff_3d         = .false.
   logical :: use_basal_module       = .true.
   logical :: test_nml              = .false.
+  logical :: use_icb_module       = .true.
 
 
 
@@ -3643,10 +3650,11 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
           do j=jsc,jec
              if ( Grd%yt(i,j) < -60.0 ) then
                 basal(i,j) = runoff(i,j) - calving(i,j)
-                !runoff(i,j) = calving2(i,j) !icb
-                runoff(i,j) = calving(i,j)
+                icb(i,j)   = calving2(i,j) !icb
+                runoff(i,j) = 0.0
                 calving(i,j) = 0.0
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
+                if ( icb(i,j) < 0.0 ) icb(i,j) = 0.0
              else
                 calving(i,j) = 0
              endif
@@ -3730,6 +3738,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 T_prog(index_temp)%trunoff(i,j)  = 0.0
                 T_prog(index_temp)%tcalving(i,j) = 0.0
                 T_prog(index_temp)%tbasal(i,j) = 0.0
+                T_prog(index_temp)%ticb(i,j) = 0.0
 
                 if(runoff(i,j) > epsln) then
                     T_prog(index_temp)%trunoff(i,j) = &
@@ -3742,6 +3751,10 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 if(basal(i,j) > epsln) then !Pedro
                     T_prog(index_temp)%tbasal(i,j) = &
                     min(100.0, max(-273.15,T_prog(index_temp)%basal_tracer_flux(i,j)/basal(i,j)))
+                endif
+                if(icb(i,j) > epsln) then !Pedro
+                    T_prog(index_temp)%ticb(i,j) = &
+                    min(100.0, max(-273.15,T_prog(index_temp)%icb_tracer_flux(i,j)/icb(i,j)))
                 endif
              enddo
           enddo
@@ -3828,6 +3841,9 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 !Temp set of basal_tracer_flux
                 T_prog(index_temp)%basal_tracer_flux(i,j)= &
                    Grd%tmask(i,j,1)*T_prog(index_temp)%tbasal(i,j)*basal(i,j)
+                !Temp set of icb_tracer_flux
+                T_prog(index_temp)%icb_tracer_flux(i,j)= &
+                   Grd%tmask(i,j,1)*T_prog(index_temp)%ticb(i,j)*icb(i,j)
              enddo
           enddo
 
@@ -3845,6 +3861,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%tcalving(i,j)*calving(i,j)
                  T_prog(index_redist_heat)%basal_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_redist_heat)%tbasal(i,j)*basal(i,j)
+                 T_prog(index_redist_heat)%icb_tracer_flux(i,j) = &
+                   Grd%tmask(i,j,1)*T_prog(index_redist_heat)%ticb(i,j)*icb(i,j)
                enddo
             enddo
           endif           
@@ -3863,6 +3881,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%tcalving(i,j)*calving(i,j)
                  T_prog(index_added_heat)%basal_tracer_flux(i,j) = &
                    Grd%tmask(i,j,1)*T_prog(index_added_heat)%tbasal(i,j)*basal(i,j)
+                 T_prog(index_added_heat)%icb_tracer_flux(i,j) = &
+                   Grd%tmask(i,j,1)*T_prog(index_added_heat)%ticb(i,j)*icb(i,j)
                enddo
             enddo
           endif           
@@ -4043,7 +4063,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(zero_net_water_coupler) then 
          do j=jsc,jec
             do i=isc,iec
-               pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) - melt(i,j) - wrk1_2d(i,j) !Pedro
+               pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) - melt(i,j) - wrk1_2d(i,j) !Pedro
             enddo
          enddo
          pme_river_total = mpp_global_sum(Dom%domain2d,pme_river(:,:)*Grd%dat(:,:)*Grd%tmask(:,:,1),&
@@ -4077,6 +4097,12 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
          do i=isc,iec
             T_prog(index_salt)%basal_tracer_flux(i,j) = &
             T_prog(index_salt)%tbasal(i,j)*basal(i,j)*T_prog(index_salt)%conversion
+         enddo
+      enddo
+      do j=jsc,jec
+         do i=isc,iec
+            T_prog(index_salt)%icb_tracer_flux(i,j) = &
+            T_prog(index_salt)%icb(i,j)*icb(i,j)*T_prog(index_salt)%conversion
          enddo
       enddo
 
@@ -4144,6 +4170,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   call mpp_update_domains(river(:,:), Dom%domain2d)
   !Pedro
   call mpp_update_domains(basal(:,:), Dom%domain2d)
+  call mpp_update_domains(icb(:,:)  , Dom%domain2d)
   !Pedro
 
   !---------------surface pressure from ice and atmos-----------
@@ -4412,7 +4439,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !--------send diagnostics------------------- 
   !
   call ocean_sbc_diag (Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary,        &
-                      pme, runoff, calving, river, basal, alphasfc, betasfc, alphasfc2, betasfc2, &
+                      pme, runoff, calving, river, basal, icb, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip, frozen_precip, evaporation, sensible, longwave, &
                       latent, swflx, swflx_vis) !Pedro
 
@@ -4440,7 +4467,7 @@ end subroutine get_ocean_sbc
 ! </DESCRIPTION>
 !
 
-subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme, basal)
+subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme, basal, icb)
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
 
   use auscom_ice_parameters_mod, only : use_ioaice, aice_cutoff
@@ -4457,6 +4484,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
   real, dimension(isd:,jsd:),     intent(in)    :: melt 
   real, dimension(isd:,jsd:),     intent(inout) :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: icb   !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: open_ocean_mask
   real, dimension(isd:ied,jsd:jed) :: pme_restore, flx_restore
@@ -4586,7 +4614,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
                  do i=isc,iec
                     !Pedro
                     !pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j)
-                    pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) - melt(i,j)
+                    pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) - melt(i,j)
                     !Pedro
                  enddo
               enddo
@@ -5208,7 +5236,7 @@ end subroutine flux_adjust
 ! </DESCRIPTION>
 !
 subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary, pme,  &
-                      runoff, calving, river, basal, alphasfc, betasfc, alphasfc2, betasfc2, &
+                      runoff, calving, river, basal, icb, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip,  frozen_precip, evaporation, sensible, longwave,&
                       latent, swflx, swflx_vis)
 
@@ -5223,6 +5251,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
   real, dimension(isd:,jsd:),     intent(in) :: calving 
   real, dimension(isd:,jsd:),     intent(in) :: river
   real, dimension(isd:,jsd:),     intent(in) :: basal !Pedro
+  real, dimension(isd:,jsd:),     intent(in) :: icb !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc
   real, dimension(isd:,jsd:),     intent(in) :: betasfc
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc2
