@@ -382,9 +382,7 @@ private
   real, dimension(isd:ied,jsd:jed)      :: runoff        ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2))
 !Pedro
   real, dimension(isd:ied,jsd:jed)      :: basal         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
-  real, dimension(isd:ied,jsd:jed,2)    :: ubasal        ! horizontal velocity from river runoff+calving
-  real, dimension(isd:ied,jsd:jed,nk)      :: basal3d         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
-  real, dimension(isd:ied,jsd:jed,nk,2)    :: ubasal3d        ! horizontal velocity from river runoff+calving
+  real, dimension(isd:ied,jsd:jed,nk)   :: basal3d         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
 !Pedro
   real, dimension(isd:ied,jsd:jed)      :: calving       ! mass flux of calving land ice per horz area from (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,2)    :: uriver        ! horizontal velocity from river runoff+calving
@@ -414,9 +412,7 @@ private
   real, pointer, dimension(:,:)     :: runoff              =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
 !Pedro
   real, pointer, dimension(:,:)     :: basal               =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
-  real, pointer, dimension(:,:,:)   :: ubasal              =>NULL() ! horizontal velocity from river (m/s)
-  real, pointer, dimension(:,:,:)     :: basal3d               =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
-  real, pointer, dimension(:,:,:,:)   :: ubasal3d              =>NULL() ! horizontal velocity from river (m/s)
+  real, pointer, dimension(:,:,:)   :: basal3d               =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
 !Pedro
   real, pointer, dimension(:,:)     :: calving             =>NULL() ! mass flux of calving land ice per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: uriver              =>NULL() ! horizontal velocity from river (m/s)
@@ -1224,9 +1220,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     allocate(runoff(isd:ied,jsd:jed))
 !Pedro
     allocate(basal(isd:ied,jsd:jed))
-    allocate(ubasal(isd:ied,jsd:jed,2))
     allocate(basal3d(isd:ied,jsd:jed,nk))
-    allocate(ubasal3d(isd:ied,jsd:jed,nk,2))
 !Pedro
     allocate(calving(isd:ied,jsd:jed))
     allocate(uriver(isd:ied,jsd:jed,2))
@@ -1269,9 +1263,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     runoff                      = 0.0
 !Pedro
     basal                       = 0.0
-    ubasal                      = 0.0
     basal3d                     = 0.0
-    ubasal3d                    = 0.0
 !Pedro
     calving                     = 0.0
     uriver                      = 0.0
@@ -1634,7 +1626,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !     upme, uriver, swflx, swflx_vis, patm)
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, calving, &
-            upme, uriver, ubasal, swflx, swflx_vis, patm, ubasal3d)
+            upme, uriver, swflx, swflx_vis, patm)
        !Pedro
        call mpp_clock_end(id_sbc)
 
