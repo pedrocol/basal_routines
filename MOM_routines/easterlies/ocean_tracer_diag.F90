@@ -1931,7 +1931,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   calving_input = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
 
   !Pedro
-    ! mass of basal (runoff) water input to the ocean
+  ! mass of basal (runoff) water input to the ocean
   tmp(:,:)     = dtime*basal(:,:)*area_t(:,:)
   basal_input = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
   !Pedro
@@ -2338,8 +2338,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Age input via river runoff                          = ',&
                                           tracer_input_runoff*mass_taup1_r,' yr'
          !Pedro
-         !write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                        = ',&
-         !                                 tracer_input_basal*mass_taup1_r,' yr'
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                        = ',&
+                                          tracer_input_basal*mass_taup1_r,' yr'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Age input via calving land ice                      = ',&
                                           tracer_input_calving*mass_taup1_r,' yr'
@@ -2392,8 +2392,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via river runoff                       = ',&
                                           tracer_input_runoff,' kg'
          !Pedro
-         !write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                     = ',&
-         !                                 tracer_input_basal,' kg'
+         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                     = ',&
+                                          tracer_input_basal,' kg'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via calving land ice                   = ',&
                                           tracer_input_calving,' kg'
