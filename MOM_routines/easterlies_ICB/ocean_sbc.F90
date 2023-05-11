@@ -4102,7 +4102,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       do j=jsc,jec
          do i=isc,iec
             T_prog(index_salt)%icb_tracer_flux(i,j) = &
-            T_prog(index_salt)%icb(i,j)*icb(i,j)*T_prog(index_salt)%conversion
+            T_prog(index_salt)%ticb(i,j)*icb(i,j)*T_prog(index_salt)%conversion
          enddo
       enddo
 
