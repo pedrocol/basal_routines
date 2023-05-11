@@ -2066,9 +2066,9 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   write (stdoutunit,'(a,es24.17,a)') ' Mass of river runoff liquid water input           = ',&
                                    runoff_input,' kg'
   !Pedro
-  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (runoff) liquid water input         = ',&
+  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (incl. sources) liquid water input  = ',&
                                    basal_input,' kg'
-  write (stdoutunit,'(a,es24.17,a)') ' Mass of icb (runoff) liquid water input         = ',&
+  write (stdoutunit,'(a,es24.17,a)') ' Mass of icb (incl. sources) liquid water input    = ',&
                                    icb_input,' kg'
   !Pedro
   write (stdoutunit,'(a,es24.17,a)') ' Mass of sea ice melt input                        = ',&
@@ -2364,8 +2364,10 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Age input via river runoff                          = ',&
                                           tracer_input_runoff*mass_taup1_r,' yr'
          !Pedro
-         !write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                        = ',&
-         !                                 tracer_input_basal*mass_taup1_r,' yr'
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via basal (runoff)                        = ',&
+                                          tracer_input_basal*mass_taup1_r,' yr'
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via icb                                   = ',&
+                                          tracer_input_icb*mass_taup1_r,' yr'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Age input via calving land ice                      = ',&
                                           tracer_input_calving*mass_taup1_r,' yr'
@@ -2418,8 +2420,10 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via river runoff                       = ',&
                                           tracer_input_runoff,' kg'
          !Pedro
-         !write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                     = ',&
-         !                                 tracer_input_basal,' kg'
+         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via basal (runoff)                     = ',&
+                                          tracer_input_basal,' kg'
+         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via icb                                = ',&
+                                          tracer_input_icb,' kg'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via calving land ice                   = ',&
                                           tracer_input_calving,' kg'

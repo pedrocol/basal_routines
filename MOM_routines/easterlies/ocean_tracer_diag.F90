@@ -2057,7 +2057,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   write (stdoutunit,'(a,es24.17,a)') ' Mass of river runoff liquid water input           = ',&
                                    runoff_input,' kg'
   !Pedro
-  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (runoff) liquid water input         = ',&
+  write (stdoutunit,'(a,es24.17,a)') ' Mass of basal (incl. sources) liquid water input  = ',&
                                    basal_input,' kg'
   !Pedro
   write (stdoutunit,'(a,es24.17,a)') ' Mass of sea ice melt input                        = ',&
