@@ -3214,6 +3214,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
          do i=isc,iec
             if(basal(i,j) > 0) then
                 basal_mod(i,j) = basal(i,j)
+            endif
             if(icb(i,j) > 0) then
                 icb_mod(i,j) = icb(i,j)
             endif
