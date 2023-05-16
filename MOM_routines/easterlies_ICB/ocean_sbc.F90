@@ -3646,8 +3646,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do i=isc,iec
           do j=jsc,jec
              if ( Grd%yt(i,j) < -60.0 ) then
-                basal(i,j) = 0.1*(runoff(i,j) - calving(i,j))
-                icb(i,j)   = 0.0 * calving2(i,j) !icb
+                basal(i,j) = runoff(i,j) - calving(i,j)
+                icb(i,j)   = calving2(i,j) 
                 runoff(i,j) = 0.0
                 calving(i,j) = 0.0
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
