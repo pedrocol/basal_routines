@@ -190,7 +190,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_icb_tracer_nml/ use_icb_module, test_nml, damp_coeff_3d
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
 
 contains
 
@@ -244,7 +244,7 @@ subroutine ocean_icb_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_option
 #else
   ioun =  open_namelist_file()
   read(ioun, ocean_icb_tracer_nml, IOSTAT=io_status)
-  ierr = check_nml_error(io_status, 'ocean_icb_tracer_nml')
+  ierr = check_nml_error(io_status, 'ocean_basal_tracer_nml')
   call close_file(ioun)
 #endif
   write(stdlogunit, ocean_icb_tracer_nml)
