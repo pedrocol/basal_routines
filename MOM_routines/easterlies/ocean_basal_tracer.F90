@@ -152,9 +152,7 @@ integer :: id_tbasal=-1
 
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
-logical :: damp_coeff_3d         = .false. 
 logical :: use_basal_module       = .false. 
-logical :: test_nml              = .false. 
 
 ! internally set for computing watermass diagnostics
 logical :: compute_watermass_diag_ba = .false.
@@ -191,7 +189,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, test_nml, damp_coeff_3d
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
 
 contains
 

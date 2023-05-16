@@ -152,9 +152,8 @@ integer :: id_tbasal=-1
 
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
-logical :: damp_coeff_3d         = .false. 
-logical :: use_basal_module       = .false. 
-logical :: test_nml              = .false. 
+logical :: use_basal_module       = .true. 
+logical :: use_icb_module       = .true. 
 
 ! internally set for computing watermass diagnostics
 logical :: compute_watermass_diag_ba = .false.

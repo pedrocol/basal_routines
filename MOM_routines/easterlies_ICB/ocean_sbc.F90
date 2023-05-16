@@ -3309,9 +3309,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real    :: active_cells, smftu, smftv
 
   integer :: stdoutunit 
-  logical :: damp_coeff_3d         = .false.
   logical :: use_basal_module       = .true.
-  logical :: test_nml              = .false.
   logical :: use_icb_module       = .true.
 
 
