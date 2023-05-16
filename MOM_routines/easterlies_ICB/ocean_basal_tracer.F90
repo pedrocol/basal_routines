@@ -191,7 +191,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, test_nml, damp_coeff_3d
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
 
 contains
 

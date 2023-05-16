@@ -3316,8 +3316,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
 
 
-!  namelist /ocean_basal_tracer_nml/ use_basal_module
-  namelist /ocean_basal_tracer_nml/ use_basal_module, test_nml, damp_coeff_3d
+  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
 
 
   stdoutunit=stdout() 
@@ -3649,8 +3648,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
         do i=isc,iec
           do j=jsc,jec
              if ( Grd%yt(i,j) < -60.0 ) then
-                basal(i,j) = runoff(i,j) - calving(i,j)
-                icb(i,j)   = calving2(i,j) !icb
+                basal(i,j) = 0.1*(runoff(i,j) - calving(i,j))
+                icb(i,j)   = 0.0 * calving2(i,j) !icb
                 runoff(i,j) = 0.0
                 calving(i,j) = 0.0
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
