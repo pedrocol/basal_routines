@@ -621,6 +621,11 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        !Equivalent tbasal using heat flux formulation
                        tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
                                 T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert
+                       if ( tbasal < -90 ) then
+                          tbasal = -90 !We limit tbasal in case zinsert very small
+                          tracernew(k) = (Thickness%rho_dzt(i,j,k,tau) * T_prog(index_temp)%field(i,j,k,tau) &
+                                          + zinsert * tbasal) / (Thickness%rho_dzt(i,j,k,tau) + zinsert)
+                       endif
 
                     else
                        tbasal =  - L_f / c_p
