@@ -487,6 +487,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real    :: sal, press, delta_s
   real    :: c_p = 3974.0
   real    :: L_f = 3.34*10**5
+  real    :: gammat = 4.2*10e-5
   stdoutunit=stdout();stdlogunit=stdlog()
 !#######################################################################
 
@@ -585,9 +586,12 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
            !Test like BG03
            !misfzb(:,:) = misfzt(:,:) + 50
 
-        ! the array "river" contains the volume rate (m/s) or mass
-        ! rate (kg/m2/sec) of fluid with tracer 
-        ! that is to be distributed in the vertical.
+           !misfzt(i,j) = 0.0
+           !misfzb(i,j) = 40.0
+
+           ! the array "river" contains the volume rate (m/s) or mass
+           ! rate (kg/m2/sec) of fluid with tracer 
+           ! that is to be distributed in the vertical.
            mininsertiondepth = misfzt(i,j)
            depth       = min(Grd%ht(i,j),mininsertiondepth) !min between bathy and value
            misfkt(i,j) = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) !min(mbathy,
@@ -628,13 +632,15 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
                        tracernew(k) = T_prog(n)%field(i,j,k,tau) - &
                                       dtime * basal3d(i,j,k) / Thickness%rho_dzt(i,j,k,tau) * L_f / c_p
                        !Equivalent tbasal using heat flux formulation
-                       tbasal = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
-                                T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert
-
-                    else
+                       tbasal = - L_f / c_p
+                               
+                    elseif (gade_line == 1 ) then
                        tbasal =  - L_f / c_p
                        tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
                                        tbasal*zinsert) / (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    elseif (gade_line == 2 ) then
+                       tbasal = T_prog(n)%field(i,j,k,tau)
+                       tracernew(k) = T_prog(n)%field(i,j,k,tau)
                     endif
 
                     tbasal_sum = tbasal_sum + tbasal*delta(k)
