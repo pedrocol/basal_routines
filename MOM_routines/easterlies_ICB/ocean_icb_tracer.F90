@@ -530,16 +530,19 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
                        tracernew(k) = T_prog(n)%field(i,j,k,tau) - &
                                       dtime * icb3d(i,j,k) / Thickness%rho_dzt(i,j,k,tau) * L_f / c_p
                        !Equivalent ticb using heat flux formulation
-                       ticb = ( (tracernew(k) * (Thickness%rho_dzt(i,j,k,tau)+zinsert)) - &
-                                T_prog(index_temp)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) ) / zinsert
+                       ticb = - L_f / c_p
 
-                    else
+                    elseif (gade_line == 1 ) then
                        ticb =  - L_f / c_p
                        tracernew(k) = (T_prog(n)%field(i,j,k,tau)*Thickness%rho_dzt(i,j,k,tau) + &
                                        ticb*zinsert) / (Thickness%rho_dzt(i,j,k,tau)+zinsert)
+                    elseif (gade_line == 2 ) then
+                       ticb = T_prog(n)%field(i,j,k,tau)
+                       tracernew(k) = T_prog(n)%field(i,j,k,tau)
                     endif
 
                     ticb_sum = ticb_sum + ticb*delta(k)
+
                  enddo
 
                  T_prog(n)%ticb(i,j) = ticb_sum !average for ocean_diagnostics
