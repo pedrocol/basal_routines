@@ -95,6 +95,8 @@ integer :: id_basal_fwflx2d        =-1
 integer, dimension(:), allocatable :: id_basalfw
 integer, dimension(:), allocatable :: id_basalmix_on_nrho
 
+real    :: basal_diffusivity = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
+
 integer :: id_neut_rho_basalmix    =-1
 integer :: id_wdian_rho_basalmix   =-1
 integer :: id_tform_rho_basalmix   =-1
@@ -191,7 +193,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, basal_diffusivity
 
 contains
 
@@ -420,6 +422,13 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
 
   call watermass_diag_basal(Time, Dens, T_prog, basal, &
   T_prog(index_temp)%wrk1(:,:,:),T_prog(index_salt)%wrk1(:,:,:), misfkt, misfkb)
+
+  if(basal_diffuse_temp) then
+     call basal_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1), basal, misfkt, misfkb)
+  endif
+  if(basal_diffuse_salt) then
+     call basal_kappa(Time, Thickness, T_prog(index_salt), diff_cbt(isd:ied,jsd:jed,:,2), basal, misfkt, misfkb)
+  endif
 
   deallocate ( misfkt, misfkb )
 
@@ -1299,7 +1308,7 @@ end subroutine watermass_diag_basal
 
 
 !#######################################################################
-! <SUBROUTINE NAME="river_kappa">
+! <SUBROUTINE NAME="basal_kappa">
 !
 ! <DESCRIPTION>
 ! This subroutine enhances the vertical diffusivity kappa over
@@ -1312,53 +1321,56 @@ end subroutine watermass_diag_basal
 ! river_diffusion_thickness
 ! </DESCRIPTION>
 !
-!subroutine river_kappa (Time, Thickness, Tracer, kappa)
+subroutine basal_kappa (Time, Thickness, Tracer, kappa, basal_i, misfkt, misfkb)
 
-!  type(ocean_time_type),         intent(in)    :: Time
-!  type(ocean_thickness_type),    intent(in)    :: Thickness
-!  type(ocean_prog_tracer_type),  intent(in)    :: Tracer
-!  real, dimension(isd:,jsd:,:),  intent(inout) :: kappa
-!  real    :: river_diffusivity=0.0      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
-!  real    :: river_diffusion_thickness=0.0 ! static thickness (m) of ocean column where diffuse tracer at river mouths.
-!                                         ! actual thickness is based on model grid spacing. min thickness=dtz(1).  integer :: i, j, k, nz
-!  real    :: depth
-!  real, dimension(nk) :: zw_ij
-!
-!  if(.not. module_is_initialized ) then
-!    call mpp_error(FATAL, &
-!    '==>Error in ocean_rivermix_mod (river_kappa): module must be initialized')
-!  endif
-!
-!  wrk1=0.0
-!
-!  do j=jsc,jec
-!     do i=isc,iec
-!
-!        do k=1,nk
-!           zw_ij(k) = Thickness%depth_zwt(i,j,k)
-!        enddo
-!
-!        if (Tracer%riverdiffuse(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
-!            depth = min(Grd%ht(i,j),river_diffusion_thickness)
-!            nz    = min(Grd%kmt(i,j),floor(frac_index(depth,zw_ij)))
-!            nz    = max(1,nz)
-!            do k=1,nz
-!              wrk1(i,j,k)  = river_diffusivity*(1.0 - Thickness%depth_zt(i,j,k)/Thickness%depth_zt(i,j,nk))
-!              kappa(i,j,k) = kappa(i,j,k) + wrk1(i,j,k)
-!            enddo
-!        endif
-!     enddo
-!  enddo
-!
-!  !if (id_diff_cbt_river_t > 0 .and. Tracer%name=='temp') then
-!  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_t, wrk1(:,:,:))
-!  !endif
-!  !if (id_diff_cbt_river_s > 0 .and. Tracer%name=='salt') then
-!  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_s, wrk1(:,:,:))
-!  !endif
-!
-!end subroutine river_kappa
-!! </SUBROUTINE> NAME="river_kappa"
+  type(ocean_time_type),         intent(in)    :: Time
+  type(ocean_thickness_type),    intent(in)    :: Thickness
+  type(ocean_prog_tracer_type),  intent(in)    :: Tracer
+  real, dimension(isd:,jsd:,:),  intent(inout) :: kappa
+  real, dimension(isd:,jsd:),     intent(in)  :: basal_i
+  integer, dimension(isd:,jsd:),  intent(in)  :: misfkt,misfkb ! Top and bottom input depths
+  !real    :: depth
+  real    :: delta(nk),thkocean
+  !real, dimension(nk) :: zw_ij
+
+  !if(.not. module_is_initialized ) then
+  !  call mpp_error(FATAL, &
+  !  '==>Error in ocean_basalmix_mod (basal_kappa): module must be initialized')
+  !endif
+
+  wrk1  = 0.0
+
+  do j=jsc,jec
+     do i=isc,iec
+
+        if (basal_i(i,j) > 0.0) then
+            !delta = 0.0
+            !thkocean = 0.0
+
+            !do k=misfkt(i,j),misfkb(i,j)
+            !   thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
+            !enddo
+            !do k=misfkt(i,j),misfkb(i,j)
+            !   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
+            !enddo
+
+            do k=misfkt(i,j),misfkb(i,j)
+              wrk1(i,j,k)  = basal_diffusivity
+              kappa(i,j,k) = kappa(i,j,k) + wrk1(i,j,k)
+            enddo
+        endif
+     enddo
+  enddo
+
+  !if (id_diff_cbt_river_t > 0 .and. Tracer%name=='temp') then
+  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_t, wrk1(:,:,:))
+  !endif
+  !if (id_diff_cbt_river_s > 0 .and. Tracer%name=='salt') then
+  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_s, wrk1(:,:,:))
+  !endif
+
+end subroutine basal_kappa
+! </SUBROUTINE> NAME="basal_kappa"
 
 
 !#######################################################################

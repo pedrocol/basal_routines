@@ -3255,7 +3255,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                tracer_runoff(i,j,n)      = tracer_runoff(i,j,n)      + temporary*T_prog(n)%trunoff(i,j)*runoff_mod(i,j)
                !Pedro
                tracer_basal(i,j,n)       = tracer_basal(i,j,n)      + temporary*T_prog(n)%tbasal(i,j)*basal_mod(i,j)
-               tracer_icb(i,j,n)         = tracer_icb(i,j,n)        + temporary*T_prog(n)%ticb(i,j)*basal_mod(i,j)
+               tracer_icb(i,j,n)         = tracer_icb(i,j,n)        + temporary*T_prog(n)%ticb(i,j)*icb_mod(i,j)
                !Pedro
                tracer_calving(i,j,n)     = tracer_calving(i,j,n)     + temporary*T_prog(n)%tcalving(i,j)*calving(i,j)
                tracer_pme(i,j,n)         = tracer_pme(i,j,n)         + temporary*T_prog(n)%tpme(i,j)*pme(i,j)

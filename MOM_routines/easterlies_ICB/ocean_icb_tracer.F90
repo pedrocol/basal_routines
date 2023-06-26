@@ -94,6 +94,8 @@ integer :: id_icb_fwflx2d        =-1
 integer, dimension(:), allocatable :: id_icbfw
 integer, dimension(:), allocatable :: id_icbmix_on_nrho
 
+real    :: basal_diffusivity = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
+
 integer :: id_neut_rho_icbmix    =-1
 integer :: id_wdian_rho_icbmix   =-1
 integer :: id_tform_rho_icbmix   =-1
@@ -189,7 +191,7 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, basal_diffusivity
 
 contains
 
