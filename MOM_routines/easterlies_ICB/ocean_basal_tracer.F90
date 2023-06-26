@@ -95,7 +95,10 @@ integer :: id_basal_fwflx2d        =-1
 integer, dimension(:), allocatable :: id_basalfw
 integer, dimension(:), allocatable :: id_basalmix_on_nrho
 
-real    :: basal_diffusivity = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
+real    :: basal_diffusivity  = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
+logical :: basal_diffuse_temp = .false.    ! to enhance diffusivity of temp at river mouths over river_thickness column
+logical :: basal_diffuse_salt = .false.    ! to enhance diffusivity of salt at river mouths over river_thickness column
+
 
 integer :: id_neut_rho_basalmix    =-1
 integer :: id_wdian_rho_basalmix   =-1
@@ -193,7 +196,8 @@ real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, basal_diffusivity
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
+          basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
 
 contains
 

@@ -3311,10 +3311,15 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   integer :: stdoutunit 
   logical :: use_basal_module       = .true.
   logical :: use_icb_module       = .true.
+  real    :: basal_diffusivity  = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
+  logical :: basal_diffuse_temp = .false.    ! to enhance diffusivity of temp at river mouths over river_thickness column
+  logical :: basal_diffuse_salt = .false.    ! to enhance diffusivity of salt at river mouths over river_thickness column
 
 
 
-  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module
+
+  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
+           basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
 
 
   stdoutunit=stdout() 
