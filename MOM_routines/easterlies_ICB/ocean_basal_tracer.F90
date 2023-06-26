@@ -1339,6 +1339,7 @@ subroutine basal_kappa (Time, Thickness, Tracer, kappa, basal_i, misfkt, misfkb)
   real, dimension(isd:,jsd:,:),  intent(inout) :: kappa
   real, dimension(isd:,jsd:),     intent(in)  :: basal_i
   integer, dimension(isd:,jsd:),  intent(in)  :: misfkt,misfkb ! Top and bottom input depths
+  integer :: i, j, k
   !real    :: depth
   real    :: delta(nk),thkocean
   !real, dimension(nk) :: zw_ij
