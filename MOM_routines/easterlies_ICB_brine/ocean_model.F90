@@ -385,7 +385,6 @@ private
 !Pedro
   real, dimension(isd:ied,jsd:jed)      :: brine         ! mass flux of ice formation (brine rejection flux) (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,nk)   :: brine3d       ! mass flux of 3D ice formation (brine rejection flux) (kg/(s*m^2))
-  real, dimension(isd:ied,jsd:jed,nk)   :: frazil_tau    ! frazil array at t=tau
   real, dimension(isd:ied,jsd:jed)      :: basal         ! mass flux of basal per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,nk)   :: basal3d       ! mass flux of basal 3d per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: icb           ! mass flux of icb per horz area (kg/(s*m^2))
@@ -418,9 +417,8 @@ private
   real, pointer, dimension(:,:)     :: river               =>NULL() ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: runoff              =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
 !Pedro
-  real, dimension(:,:)              :: brine               =>NULL() ! mass flux of ice formation (brine rejection flux) (kg/(s*m^2))
+  real, pointer, dimension(:,:)     :: brine               =>NULL() ! mass flux of ice formation (brine rejection flux) (kg/(s*m^2))
   real, pointer, dimension(:,:,:)   :: brine3d             =>NULL() ! mass flux of 3D ice formation (brine rejection flux) (kg/(s*m^2))
-  real, dimension(:,:,:)            :: frazil_tau          =>NULL() ! frazil array at t=tau
   real, pointer, dimension(:,:)     :: basal               =>NULL() ! mass flux of basal per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: basal3d             =>NULL() ! mass flux of basal 3d per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: icb                 =>NULL() ! mass flux of icb per horz area from (kg/(s*m^2)) 
@@ -1236,7 +1234,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     allocate(river(isd:ied,jsd:jed))
     allocate(runoff(isd:ied,jsd:jed))
 !Pedro
-    allocate(frazil_tau(isd:ied,jsd:jed,nk))
     allocate(basal(isd:ied,jsd:jed))
     allocate(basal3d(isd:ied,jsd:jed,nk))
     allocate(icb(isd:ied,jsd:jed))
@@ -1286,7 +1283,6 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 !Pedro
     brine                       = 0.0
     brine3d                     = 0.0
-    frazil_tau                  = 0.0
     basal                       = 0.0
     basal3d                     = 0.0
     icb                         = 0.0
@@ -1655,7 +1651,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !     upme, uriver, swflx, swflx_vis, patm)
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, icb, brine, calving, &
-            frazil_tau, upme, uriver, swflx, swflx_vis, patm)
+            upme, uriver, swflx, swflx_vis, patm)
        !Pedro
        call mpp_clock_end(id_sbc)
 
