@@ -1787,7 +1787,7 @@ end subroutine compute_tracer_mld
 ! 
 ! </DESCRIPTION>
 subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
-                          pme, melt, runoff, calving, basal, icb, basal)
+                          pme, melt, runoff, calving, basal, icb, brine)
 
   type(ocean_time_type),          intent(in) :: Time
   type(ocean_thickness_type),     intent(in) :: Thickness
@@ -3290,7 +3290,6 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                !Pedro
                tracer_basal(i,j,n)       = tracer_basal(i,j,n)      + temporary*T_prog(n)%tbasal(i,j)*basal_mod(i,j)
                tracer_icb(i,j,n)         = tracer_icb(i,j,n)        + temporary*T_prog(n)%ticb(i,j)*icb_mod(i,j)
-               tracer_brine(i,j,n)       = tracer_brine(i,j,n)      + temporary*T_prog(n)%tbrine(i,j)*brine_mod(i,j)
                !Pedro
                tracer_calving(i,j,n)     = tracer_calving(i,j,n)     + temporary*T_prog(n)%tcalving(i,j)*calving(i,j)
                tracer_pme(i,j,n)         = tracer_pme(i,j,n)         + temporary*T_prog(n)%tpme(i,j)*pme(i,j)
@@ -3369,8 +3368,8 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
 
       tracer_total_input =   tracer_stf_input    + tracer_btf_input        + tracer_otf_input &
                            + tracer_runoff_input + tracer_calving_input    + tracer_pme_input &
-                           + tracer_frazil_input + tracer_eta_smooth_input &
-                           + tracer_pbot_smooth_input + tracer_basal_input + tracer_icb_input + tracer_brine !Pedro
+                           + tracer_frazil_input + tracer_eta_smooth_input + tracer_pbot_smooth_input &
+                           + tracer_basal_input + tracer_icb_input + tracer_brine !Pedro
 
       ! runoff, calving, pme, and smooth are added to T_prog(n)%th_tendency inside 
       ! ocean_rivermix_mod (runoff, calving) and ocean_tracer_mod (pme, and smooth).
@@ -3379,9 +3378,9 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
       ! contributions from the global integration of internal flux convergences. 
       ! When integrated globally, these convergences should sum to zero, and such is 
       ! an important check that the contributions to tracer updates are coded properly.  
-      tracer_tend_input =  tracer_tend_input - tracer_runoff_input     - tracer_calving_input & 
-                          -tracer_pme_input  - tracer_eta_smooth_input &
-                          - tracer_pbot_smooth_input - tracer_basal_input - tracer_icb_input - tracer_brine !Pedro
+      tracer_tend_input =  tracer_tend_input - tracer_runoff_input     - tracer_calving_input     & 
+                         - tracer_pme_input  - tracer_eta_smooth_input - tracer_pbot_smooth_input &
+                         - tracer_basal_input - tracer_icb_input - tracer_brine !Pedro
 
       ! stf and btf added to th_tendency when use explicit vertical diffusion (aidif=0)
       if (aidif==0.0) tracer_tend_input = tracer_tend_input - tracer_stf_input - tracer_btf_input
