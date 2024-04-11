@@ -1331,11 +1331,13 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         allocate(T_prog(n)%trunoff(isd:ied,jsd:jed))
         allocate(T_prog(n)%tbasal(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%ticb(isd:ied,jsd:jed)) !Pedro
+        allocate(T_prog(n)%tbrine(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%tcalving(isd:ied,jsd:jed))
         allocate(T_prog(n)%runoff_tracer_flux(isd:ied,jsd:jed))
         allocate(T_prog(n)%calving_tracer_flux(isd:ied,jsd:jed))
         allocate(T_prog(n)%basal_tracer_flux(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%icb_tracer_flux(isd:ied,jsd:jed)) !Pedro
+        allocate(T_prog(n)%brine_tracer_flux(isd:ied,jsd:jed)) !Pedro
         allocate(T_prog(n)%riverdiffuse(isd:ied,jsd:jed))
 #endif
 
@@ -1392,16 +1394,19 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
         T_prog(n)%trunoff             = 0.0
         T_prog(n)%tbasal              = 0.0 !Pedro
         T_prog(n)%ticb                = 0.0 !Pedroc
+        T_prog(n)%tbrine              = 0.0 !Pedro
         T_prog(n)%tcalving            = 0.0
         T_prog(n)%runoff_tracer_flux  = 0.0
         T_prog(n)%calving_tracer_flux = 0.0
         T_prog(n)%basal_tracer_flux   = 0.0 !Pedro
         T_prog(n)%icb_tracer_flux     = 0.0 !Pedro
+        T_prog(n)%brine_tracer_flux   = 0.0 !Pedro
         T_prog(n)%riverdiffuse        = 0.0
         if (n==index_salt) then
            T_prog(n)%trunoff(:,:) = runoff_salinity*Grd%tmask(:,:,1)
            T_prog(n)%tbasal(:,:)  = runoff_salinity*Grd%tmask(:,:,1) !Pedro
            T_prog(n)%ticb(:,:)    = runoff_salinity*Grd%tmask(:,:,1) !Pedro
+           T_prog(n)%tbrine(:,:)  = runoff_salinity*Grd%tmask(:,:,1) !Pedro
         endif 
 
   enddo ! for do n=1,num_prog_tracers
@@ -3260,7 +3265,7 @@ end subroutine ocean_sfc_end
 !
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
-                         pme, melt, river, runoff, basal, icb, calving, upme, uriver,  &
+                         pme, melt, river, runoff, basal, icb, calving, brine, frazil_tau, upme, uriver,  &
                          swflx, swflx_vis, patm)
 
 
@@ -3278,6 +3283,8 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: basal
   real, dimension(isd:,jsd:),     intent(inout) :: icb
+  real, dimension(isd:,jsd:),     intent(inout) :: brine
+  real, dimension(isd:,jsd:,:),   intent(inout) :: frazil_tau
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: calving 
   real, dimension(isd:,jsd:),     intent(inout) :: swflx
@@ -3309,17 +3316,11 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real    :: active_cells, smftu, smftv
 
   integer :: stdoutunit 
-  logical :: use_basal_module       = .true.
-  logical :: use_icb_module       = .true.
-  real    :: basal_diffusivity  = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
-  logical :: basal_diffuse_temp = .false.    ! to enhance diffusivity of temp at river mouths over river_thickness column
-  logical :: basal_diffuse_salt = .false.    ! to enhance diffusivity of salt at river mouths over river_thickness column
+  logical :: use_basal_module   = .true.
+  logical :: use_icb_module     = .true.
+  logical :: use_brine_module   = .true.
 
-
-
-
-  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
-           basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
+  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
 
 
   stdoutunit=stdout() 
@@ -3581,6 +3582,21 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
               evaporation(ii,jj)   = -Ice_ocean_boundary%q_flux(i,j)*Grd%tmask(ii,jj,1) 
           enddo
       enddo
+      !Pedro
+      !Brine rejection at depth
+      do j = jsc_bnd,jec_bnd
+         do i = isc_bnd,iec_bnd
+            ii = i + i_shift
+            jj = j + j_shift
+            if ( Grd%yt(i,j) < -60.0 ) then
+               brine(ii,jj) = Ice_ocean_boundary%wfiform(i,j) * Grd%tmask(ii,jj,1)
+               pme(ii,jj) = pme(ii,jj) - brine(ii,jj)
+            endif
+         enddo
+      enddo
+      !Pedro
+
+
       if(waterflux_tavg) then 
         do j = jsc_bnd,jec_bnd
           do i = isc_bnd,iec_bnd
@@ -3669,7 +3685,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(runoffspread)  call spread_river_horz(runoff)
       if(calvingspread) call spread_river_horz(calving)
       !Pedro
-      if(runoffspread)  call spread_river_horz(basal)
+      !if(runoffspread)  call spread_river_horz(basal)
       !Pedro
 
       ! river=runoff+calving is the water mass flux 

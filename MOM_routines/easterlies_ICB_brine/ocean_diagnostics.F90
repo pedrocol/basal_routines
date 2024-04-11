@@ -129,7 +129,7 @@ end subroutine ocean_diag_init
 !
 subroutine ocean_diagnostics(Time, Thickness, T_prog, T_diag, Adv_vel,&
                              Ext_mode, Dens, Velocity, &  
-                             pme, melt, runoff, calving, visc_cbt, diff_cbt, basal, icb)
+                             pme, melt, runoff, calving, visc_cbt, diff_cbt, basal, icb, brine)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_thickness_type),     intent(in)    :: Thickness 
@@ -149,6 +149,7 @@ subroutine ocean_diagnostics(Time, Thickness, T_prog, T_diag, Adv_vel,&
   !Pedro
   real, dimension(isd:,jsd:),    intent(in) :: basal
   real, dimension(isd:,jsd:),    intent(in) :: icb
+  real, dimension(isd:,jsd:),    intent(in) :: brine
   !Pedro
   
   if (size(T_prog,1) /= num_prog_tracers) then 
@@ -162,7 +163,7 @@ subroutine ocean_diagnostics(Time, Thickness, T_prog, T_diag, Adv_vel,&
   call mpp_clock_begin(id_tracer_diag)
   call ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
                                 Ext_mode, Velocity, Adv_vel, &
-                                diff_cbt, pme, melt, runoff, calving, basal, icb) !Pedro
+                                diff_cbt, pme, melt, runoff, calving, basal, icb, brine) !Pedro
   call mpp_clock_end(id_tracer_diag)
 
   call mpp_clock_begin(id_velocity_diag)

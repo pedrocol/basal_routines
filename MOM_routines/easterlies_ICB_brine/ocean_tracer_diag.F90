@@ -201,6 +201,7 @@ real, dimension(:,:,:), allocatable :: tracer_runoff
 !Pedro
 real, dimension(:,:,:), allocatable :: tracer_basal
 real, dimension(:,:,:), allocatable :: tracer_icb
+real, dimension(:,:,:), allocatable :: tracer_brine
 !Pedro
 real, dimension(:,:,:), allocatable :: tracer_calving
 real, dimension(:,:,:), allocatable :: tracer_otf
@@ -216,6 +217,7 @@ real, dimension(:,:)  , allocatable :: runoff_flux
 !Pedro
 real, dimension(:,:)  , allocatable :: basal_flux
 real, dimension(:,:)  , allocatable :: icb_flux
+real, dimension(:,:)  , allocatable :: brine_flux
 !Pedro
 real, dimension(:,:)  , allocatable :: source_flux
 real, dimension(:,:)  , allocatable :: calving_flux
@@ -865,7 +867,7 @@ ierr = check_nml_error(io_status,'ocean_tracer_diag_nml')
 
 subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
                                     Ext_mode, Velocity, Adv_vel, &
-                                    diff_cbt, pme, melt, runoff, calving, basal, icb)
+                                    diff_cbt, pme, melt, runoff, calving, basal, icb, brine)
 
   type(ocean_time_type),          intent(in)    :: Time
   type(ocean_thickness_type),     intent(in)    :: Thickness
@@ -883,6 +885,7 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
   !Pedro
   real, dimension(isd:,jsd:),     intent(in)    :: basal
   real, dimension(isd:,jsd:),     intent(in)    :: icb
+  real, dimension(isd:,jsd:),     intent(in)    :: brine
   integer         :: i, j
   !Pedro
 
@@ -1007,7 +1010,7 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
           enddo
 
           call tracer_change(Time, Thickness, T_prog, T_diag, Ext_mode, &
-                             pme, melt, runoff, calving, basal, icb) !Pedro
+                             pme, melt, runoff, calving, basal, icb, brine) !Pedro
           call tracer_land_cell_check (Time, T_prog)
       endif
   endif
@@ -1015,8 +1018,8 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
   
   call mpp_clock_begin(id_conservation)
   if (nint(dtts) /= 0) then 
-    call mass_conservation   (Time, Thickness, Ext_mode, pme, runoff, calving)
-    call tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, calving, basal, icb) !Pedro
+    call mass_conservation   (Time, Thickness, Ext_mode, pme, runoff, calving) ! Basal, icb and brine conservation via mass_source
+    call tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, calving, basal, icb, brine) !Pedro
   endif 
   call mpp_clock_end(id_conservation)
 
@@ -1784,7 +1787,7 @@ end subroutine compute_tracer_mld
 ! 
 ! </DESCRIPTION>
 subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
-                          pme, melt, runoff, calving, basal, icb)
+                          pme, melt, runoff, calving, basal, icb, basal)
 
   type(ocean_time_type),          intent(in) :: Time
   type(ocean_thickness_type),     intent(in) :: Thickness
@@ -1798,6 +1801,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: basal
   real, dimension(isd:,jsd:),     intent(in) :: icb
+  real, dimension(isd:,jsd:),     intent(in) :: brine
   !Pedro
 
 
@@ -1814,6 +1818,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   !Pedro
   real :: tracer_input_basal, basal_input
   real :: tracer_input_icb, icb_input
+  real :: tracer_input_brine, brine_input
   !Pedro
   real :: pme_input, runoff_input, calving_input, melt_input, obc_input
   real :: eta_t_max, eta_t_min, eta_t_avg
@@ -1864,6 +1869,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   !Pedro
   basal_input      = 0.0 ! total mass of basal (runoff) water input to ocean over time step (kg)
   icb_input        = 0.0 ! total mass of icb water input to ocean over time step (kg)
+  brine_input      = 0.0 ! total mass of brine water output from ocean over time step (kg)
   !Pedro
   obc_input        = 0.0 ! total mass of water input through open boundaries to ocean over time step (kg)
   eta_t_avg        = 0.0 ! area average of eta_t (m)
@@ -1943,6 +1949,9 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   ! mass of icb water input to the ocean
   tmp(:,:)     = dtime*icb(:,:)*area_t(:,:)
   icb_input    = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
+  ! mass of basal (runoff) water input to the ocean
+  tmp(:,:)     = dtime*brine(:,:)*area_t(:,:)
+  brine_input  = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
   !Pedro
 
   ! area average surface height at time tau
@@ -2070,6 +2079,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
                                    basal_input,' kg'
   write (stdoutunit,'(a,es24.17,a)') ' Mass of icb (incl. sources) liquid water input    = ',&
                                    icb_input,' kg'
+  write (stdoutunit,'(a,es24.17,a)') ' Mass of brine (incl. sources) liquid water output    = ',&
+                                   icb_input,' kg'
   !Pedro
   write (stdoutunit,'(a,es24.17,a)') ' Mass of sea ice melt input                        = ',&
                                    melt_input,' kg'
@@ -2092,8 +2103,11 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
      tracer_input_pme    = 0.0 ! tracer quantity input to ocean via pme flux 
      tracer_input_runoff = 0.0 ! tracer quantity input to ocean via river runoff
      tracer_input_calving= 0.0 ! tracer quantity input to ocean via calving land ice
+     !Pedro
      tracer_input_basal  = 0.0 ! tracer quantity input to ocean via basal (runoff)
      tracer_input_icb    = 0.0 ! tracer quantity input to ocean via icb
+     tracer_input_brine  = 0.0 ! tracer quantity input to ocean via brine
+     !Pedro
      tracer_input_total  = 0.0 ! total tracer quantity input to ocean 
      frazil_heat         = 0.0 ! heat (Joule) from frazil formation  
      tracer_th_tend      = 0.0 ! contribution from tracer tendencies including 
@@ -2160,6 +2174,14 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
      enddo
      tracer_input_icb = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
 
+     tmp(:,:) = 0.0
+     do j=jsc,jec
+        do i=isc,iec
+           tmp(i,j) = area_t(i,j)*conversion*dtime*brine(i,j)*T_prog(n)%tbrine(i,j)
+        enddo
+     enddo
+     tracer_input_brine = mpp_global_sum(Dom%domain2d,tmp(:,:), global_sum_flag)
+
      !Pedro
 
      tmp(:,:) = area_t(:,:)*conversion*dtime*calving(:,:)*T_prog(n)%tcalving(:,:)
@@ -2180,9 +2202,10 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
      endif 
 
      ! river(=calving+runoff) is added via T_prog%th_tendency inside ocean_rivermix_mod
-     tracer_input_total =   tracer_input_stf    + tracer_input_btf     + tracer_input_otf &
-                          + tracer_input_runoff + tracer_input_calving + tracer_input_pme &
-                          + tracer_input_basal + tracer_input_icb + tracer_input_eta_smooth + tracer_input_pbot_smooth !Pedro
+     tracer_input_total =   tracer_input_stf    + tracer_input_btf     + tracer_input_otf   &
+                          + tracer_input_runoff + tracer_input_calving + tracer_input_pme   &
+                          + tracer_input_basal  + tracer_input_icb     + tracer_input_brine &
+                          + tracer_input_eta_smooth + tracer_input_pbot_smooth !Pedro
 
      frazil_heat = 0.0
      if(T_prog(n)%name =='temp' .and. index_frazil > 0) then
@@ -2237,9 +2260,9 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
  
      ! for cleaner diagnostics, remove contributions from runoff, calving, pme, and smoother,
      ! each of which are added to T_prog%th_tendency inside of ocean_tracer.F90.
-     tracer_th_tend = tracer_th_tend -tracer_input_runoff  -tracer_input_calving    -tracer_input_pme &
-                                     -tracer_input_basal   -tracer_input_icb        -tracer_input_eta_smooth &
-                                     -tracer_input_pbot_smooth !Pedro
+     tracer_th_tend = tracer_th_tend -tracer_input_runoff  -tracer_input_calving    -tracer_input_pme   &
+                                     -tracer_input_basal   -tracer_input_icb        -tracer_input_brine &
+                                     -tracer_input_eta_smooth -tracer_input_pbot_smooth !Pedro
 
      ! for aidif=0.0, stf is included in T_prog%th_tendency through vertical diffusion.
      ! for aidif=1.0, it is not in th_tendency; rather, it is included through invtri.
@@ -2307,6 +2330,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
                                           tracer_input_basal,' J'
          write (stdoutunit,'(a,es24.17,a)') ' Heat input via icb                                 = ',&
                                           tracer_input_icb,' J'
+         write (stdoutunit,'(a,es24.17,a)') ' Heat input via brine                               = ',&
+                                          tracer_input_brine,' J'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Heat input via calving land ice                    = ',&
                                           tracer_input_calving,' J'
@@ -2368,6 +2393,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
                                           tracer_input_basal*mass_taup1_r,' yr'
          write (stdoutunit,'(a,es24.17,a)') ' Age input via icb                                   = ',&
                                           tracer_input_icb*mass_taup1_r,' yr'
+         write (stdoutunit,'(a,es24.17,a)') ' Age input via brine                                 = ',&
+                                          tracer_input_brine*mass_taup1_r,' yr'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Age input via calving land ice                      = ',&
                                           tracer_input_calving*mass_taup1_r,' yr'
@@ -2424,6 +2451,8 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
                                           tracer_input_basal,' kg'
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via icb                                = ',&
                                           tracer_input_icb,' kg'
+         write (stdoutunit,'(a,es24.17,a)') ' Tracer input via brine                              = ',&
+                                          tracer_input_brine,' kg'
          !Pedro
          write (stdoutunit,'(a,es24.17,a)') ' Tracer input via calving land ice                   = ',&
                                           tracer_input_calving,' kg'
@@ -3054,7 +3083,7 @@ end subroutine mass_conservation
 !
 ! </DESCRIPTION>
 !
-subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, calving, basal, icb)
+subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, calving, basal, icb, brine)
 
   type(ocean_time_type),          intent(in) :: Time
   type(ocean_thickness_type),     intent(in) :: Thickness
@@ -3066,6 +3095,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
   !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: basal
   real, dimension(isd:,jsd:),     intent(in) :: icb
+  real, dimension(isd:,jsd:),     intent(in) :: brine
   !Pedro
  
   real, dimension(isd:ied,jsd:jed) :: tmp
@@ -3085,6 +3115,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
   !Pedro
   real :: tracer_basal_input
   real :: tracer_icb_input
+  real :: tracer_brine_input
   !Pedro
   real :: tracer_pme_input
   real :: tracer_stf_input
@@ -3128,6 +3159,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
     !Pedro
     allocate (tracer_basal(isd:ied,jsd:jed,num_prog_tracers))
     allocate (tracer_icb(isd:ied,jsd:jed,num_prog_tracers))
+    allocate (tracer_brine(isd:ied,jsd:jed,num_prog_tracers))
     !Pedro
     allocate (tracer_calving(isd:ied,jsd:jed,num_prog_tracers))
     allocate (tracer_pme(isd:ied,jsd:jed,num_prog_tracers))
@@ -3145,7 +3177,8 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
     tracer_runoff(:,:,:)      = 0.0
     !Pedro
     tracer_basal(:,:,:)       = 0.0
-    tracer_icb(:,:,:)       = 0.0
+    tracer_icb(:,:,:)         = 0.0
+    tracer_brine(:,:,:)       = 0.0
     !Pedro
     tracer_calving(:,:,:)     = 0.0
     tracer_pme(:,:,:)         = 0.0
@@ -3246,7 +3279,8 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
             enddo
          enddo
 
-         ! btf < 0 means heat is added to ocean; hence the minus sign 
+         ! btf   < 0 means heat is added to ocean; hence the minus sign 
+         ! brine < 0 means heat is added to ocean (via frazil); hence the minus sign 
          do j=jsc,jec
             do i=isc,iec        
                temporary                 = dt_con_area(i,j)*Grd%tmask(i,j,1)
@@ -3256,11 +3290,15 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                !Pedro
                tracer_basal(i,j,n)       = tracer_basal(i,j,n)      + temporary*T_prog(n)%tbasal(i,j)*basal_mod(i,j)
                tracer_icb(i,j,n)         = tracer_icb(i,j,n)        + temporary*T_prog(n)%ticb(i,j)*icb_mod(i,j)
+               tracer_brine(i,j,n)       = tracer_brine(i,j,n)      + temporary*T_prog(n)%tbrine(i,j)*brine_mod(i,j)
                !Pedro
                tracer_calving(i,j,n)     = tracer_calving(i,j,n)     + temporary*T_prog(n)%tcalving(i,j)*calving(i,j)
                tracer_pme(i,j,n)         = tracer_pme(i,j,n)         + temporary*T_prog(n)%tpme(i,j)*pme(i,j)
                tracer_stf(i,j,n)         = tracer_stf(i,j,n)         + temporary*T_prog(n)%stf(i,j)
                tracer_btf(i,j,n)         = tracer_btf(i,j,n)         - temporary*T_prog(n)%btf(i,j)
+               !Pedro
+               tracer_brine(i,j,n)       = tracer_brine(i,j,n)       - temporary*T_prog(n)%tbrine(i,j)
+               !Pedro
             enddo
          enddo
          if(n==index_temp .and. index_frazil > 0) then 
@@ -3283,6 +3321,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
              !Pedro
              tracer_basal(:,:,n)      = tracer_basal(:,:,n)*Grd%obc_tmask(:,:)
              tracer_icb(:,:,n)        = tracer_icb(:,:,n)*Grd%obc_tmask(:,:)
+             tracer_brine(:,:,n)      = tracer_brine(:,:,n)*Grd%obc_tmask(:,:)
              !Pedro
              tracer_calving(:,:,n)     = tracer_calving(:,:,n)*Grd%obc_tmask(:,:)
              tracer_pme(:,:,n)         = tracer_pme(:,:,n)*Grd%obc_tmask(:,:)
@@ -3316,6 +3355,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
       !Pedro
       tracer_basal_input       = mpp_global_sum(Dom%domain2d,tracer_basal(:,:,n),       global_sum_flag)
       tracer_icb_input         = mpp_global_sum(Dom%domain2d,tracer_icb(:,:,n),         global_sum_flag)
+      tracer_brine_input       = mpp_global_sum(Dom%domain2d,tracer_brine(:,:,n),       global_sum_flag)
       !Pedro
       tracer_calving_input     = mpp_global_sum(Dom%domain2d,tracer_calving(:,:,n),     global_sum_flag)
       tracer_pme_input         = mpp_global_sum(Dom%domain2d,tracer_pme(:,:,n),         global_sum_flag)
@@ -3330,7 +3370,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
       tracer_total_input =   tracer_stf_input    + tracer_btf_input        + tracer_otf_input &
                            + tracer_runoff_input + tracer_calving_input    + tracer_pme_input &
                            + tracer_frazil_input + tracer_eta_smooth_input &
-                           + tracer_pbot_smooth_input + tracer_basal_input + tracer_icb_input !Pedro
+                           + tracer_pbot_smooth_input + tracer_basal_input + tracer_icb_input + tracer_brine !Pedro
 
       ! runoff, calving, pme, and smooth are added to T_prog(n)%th_tendency inside 
       ! ocean_rivermix_mod (runoff, calving) and ocean_tracer_mod (pme, and smooth).
@@ -3341,7 +3381,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
       ! an important check that the contributions to tracer updates are coded properly.  
       tracer_tend_input =  tracer_tend_input - tracer_runoff_input     - tracer_calving_input & 
                           -tracer_pme_input  - tracer_eta_smooth_input &
-                          - tracer_pbot_smooth_input - tracer_basal_input - tracer_icb_input !Pedro
+                          - tracer_pbot_smooth_input - tracer_basal_input - tracer_icb_input - tracer_brine !Pedro
 
       ! stf and btf added to th_tendency when use explicit vertical diffusion (aidif=0)
       if (aidif==0.0) tracer_tend_input = tracer_tend_input - tracer_stf_input - tracer_btf_input
@@ -3365,6 +3405,7 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
         !Pedro
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by basal                                  = ',tracer_basal_input,' J.'
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by icb                                    = ',tracer_icb_input,' J.'
+        write (stdoutunit,'(a,es24.17,a)') ' Heat input by brine                                  = ',tracer_brine_input,' J.'
         !Pedro
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by precip-evap+calving                    = ',tracer_pme_input,' J.'
         write (stdoutunit,'(a,es24.17,a)') ' Heat input by open boundaries                        = ',tracer_otf_input,' J.'
@@ -3402,6 +3443,8 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                          ' input by basal                        = ',tracer_basal_input,' kg*yr.'
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by icb                          = ',tracer_icb_input,' kg*yr.'
+        write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
+                         ' input by brine                        = ',tracer_brine_input,' kg*yr.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by precip-evap+calving          = ',tracer_pme_input,' kg*yr.'
@@ -3441,6 +3484,8 @@ subroutine tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, ca
                          ' input by basal                                   = ',tracer_basal_input,' kg.'
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by icb                                     = ',tracer_icb_input,' kg.'
+        write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
+                         ' input by brine                                   = ',tracer_brine_input,' kg.'
         !Pedro
         write (stdoutunit,'(1x,a,es24.17,a)') trim(T_prog(n)%name)// &
                          ' input by precip-evap+calving                     = ',tracer_pme_input,' kg.'

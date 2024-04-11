@@ -94,11 +94,6 @@ integer :: id_icb_fwflx2d        =-1
 integer, dimension(:), allocatable :: id_icbfw
 integer, dimension(:), allocatable :: id_icbmix_on_nrho
 
-real    :: basal_diffusivity  = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
-logical :: basal_diffuse_temp = .false.    ! to enhance diffusivity of temp at river mouths over river_thickness column
-logical :: basal_diffuse_salt = .false.    ! to enhance diffusivity of salt at river mouths over river_thickness column
-
-
 integer :: id_neut_rho_icbmix    =-1
 integer :: id_wdian_rho_icbmix   =-1
 integer :: id_tform_rho_icbmix   =-1
@@ -190,12 +185,11 @@ real    :: limit_salt_restore    = 3600.
 integer :: secs_restore
 integer :: initial_day
 integer :: initial_secs
-real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
-          basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+          
 
 contains
 
@@ -344,7 +338,7 @@ end subroutine ocean_icb_tracer_init
 ! time tendencies of tracers due to damping by icb.
 ! </DESCRIPTION>
 !
-subroutine icb_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, icb, diff_cbt, index_temp, &
+subroutine icb_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, icb, index_temp, &
                                index_salt, icb3d)
 
   type(ocean_time_type),          intent(in)      :: Time
@@ -353,7 +347,6 @@ subroutine icb_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, icb, dif
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: icb
-  real, dimension(isd:,jsd:,:,:), intent(inout)   :: diff_cbt
   real, dimension(isd:,jsd:,:)  , intent(inout)   :: icb3d
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
@@ -372,7 +365,7 @@ subroutine icb_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, icb, dif
   num_prog_tracers = size(T_prog(:))
 
   IF ( param_choice == 1 ) THEN
-    CALL icb_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), icb, diff_cbt, index_temp, &
+    CALL icb_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), icb, index_temp, &
                                index_salt, misfkt, misfkb, Dens, icb3d)
   ELSEIF ( param_choice == 3 ) THEN
     !Do nothing for the moment
@@ -394,7 +387,7 @@ end subroutine icb_tracer_source
 ! time tendencies of tracers due to damping by icb.
 ! </DESCRIPTION>
 !
-subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_cbt,index_temp, index_salt, &
+subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,index_temp, index_salt, &
                                  misfkt, misfkb, Dens, icb3d)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),          intent(in)     :: Time
@@ -404,7 +397,6 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
   real, dimension(isd:,jsd:),     intent(inout)  :: icb_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
-  real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
   integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
   type(ocean_density_type),       intent(in)     :: Dens
   real, dimension(isd:,jsd:,:),   intent(inout)  :: icb3d
@@ -431,8 +423,6 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
   real    :: tracer_input, tfreezing, ticb, ticb_sum
   real    :: maxinsertiondepth,mininsertiondepth
-  logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
-  logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
   integer :: stdoutunit,stdlogunit
   character(len=128) :: name
   real    :: sal, press, delta_s
@@ -609,14 +599,6 @@ subroutine icb_tracer_source_1(Time, Time_steps, Thickness, T_prog, icb_i,diff_c
   deallocate ( rhisf_tbl, r1_hisf_tbl )
   deallocate ( risf_tsc_b, risf_tsc )
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
-
-!  if(river_diffuse_temp) then
-!     call river_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1))
-!  endif
-!  if(river_diffuse_salt) then
-!     call river_kappa(Time, Thickness, T_prog(index_salt), diff_cbt(isd:ied,jsd:jed,:,2))
-!  endif
-
 
 end subroutine icb_tracer_source_1
 ! </SUBROUTINE> NAME="icb_tracer_source_1"
@@ -1210,69 +1192,6 @@ subroutine watermass_diag_icb(Time, Dens, T_prog, icb, &
 
 end subroutine watermass_diag_icb
 ! </SUBROUTINE> NAME="watermass_diag_icb"
-
-
-!#######################################################################
-! <SUBROUTINE NAME="river_kappa">
-!
-! <DESCRIPTION>
-! This subroutine enhances the vertical diffusivity kappa over
-! a vertical column whose thickness is set by river_diffusion_thickness
-! and whose horizontal location is given by the rmask array.
-! Note that rmask can be > 0 even if river=0 in the case when
-! use virtual salt flux.
-! The enhanced diffusivity is maximum at the top cell and is linearly
-! interpolated to the normal diffusivity at the depth set by
-! river_diffusion_thickness
-! </DESCRIPTION>
-!
-!subroutine river_kappa (Time, Thickness, Tracer, kappa)
-
-!  type(ocean_time_type),         intent(in)    :: Time
-!  type(ocean_thickness_type),    intent(in)    :: Thickness
-!  type(ocean_prog_tracer_type),  intent(in)    :: Tracer
-!  real, dimension(isd:,jsd:,:),  intent(inout) :: kappa
-!  real    :: river_diffusivity=0.0      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
-!  real    :: river_diffusion_thickness=0.0 ! static thickness (m) of ocean column where diffuse tracer at river mouths.
-!                                         ! actual thickness is based on model grid spacing. min thickness=dtz(1).  integer :: i, j, k, nz
-!  real    :: depth
-!  real, dimension(nk) :: zw_ij
-!
-!  if(.not. module_is_initialized ) then
-!    call mpp_error(FATAL, &
-!    '==>Error in ocean_rivermix_mod (river_kappa): module must be initialized')
-!  endif
-!
-!  wrk1=0.0
-!
-!  do j=jsc,jec
-!     do i=isc,iec
-!
-!        do k=1,nk
-!           zw_ij(k) = Thickness%depth_zwt(i,j,k)
-!        enddo
-!
-!        if (Tracer%riverdiffuse(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
-!            depth = min(Grd%ht(i,j),river_diffusion_thickness)
-!            nz    = min(Grd%kmt(i,j),floor(frac_index(depth,zw_ij)))
-!            nz    = max(1,nz)
-!            do k=1,nz
-!              wrk1(i,j,k)  = river_diffusivity*(1.0 - Thickness%depth_zt(i,j,k)/Thickness%depth_zt(i,j,nk))
-!              kappa(i,j,k) = kappa(i,j,k) + wrk1(i,j,k)
-!            enddo
-!        endif
-!     enddo
-!  enddo
-!
-!  !if (id_diff_cbt_river_t > 0 .and. Tracer%name=='temp') then
-!  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_t, wrk1(:,:,:))
-!  !endif
-!  !if (id_diff_cbt_river_s > 0 .and. Tracer%name=='salt') then
-!  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_s, wrk1(:,:,:))
-!  !endif
-!
-!end subroutine river_kappa
-!! </SUBROUTINE> NAME="river_kappa"
 
 
 !#######################################################################

@@ -62,8 +62,8 @@ logical :: use_brine_module       = .true.
 logical :: use_icb_module       = .true.
 logical :: test_nml = .false.
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
-          basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+          
 
 contains
 
@@ -163,7 +163,7 @@ end subroutine ocean_basal_tracer_init
 ! time tendencies of tracers due to damping by brine.
 ! </DESCRIPTION>
 !
-subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine, diff_cbt, index_temp, &
+subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine, index_temp, &
                                index_salt, brine3d)
 
   type(ocean_time_type),          intent(in)      :: Time
@@ -172,7 +172,6 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: brine
-  real, dimension(isd:,jsd:,:,:), intent(inout)   :: diff_cbt
   real, dimension(isd:,jsd:,:)  , intent(inout)   :: brine3d
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt

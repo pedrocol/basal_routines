@@ -95,11 +95,6 @@ integer :: id_basal_fwflx2d        =-1
 integer, dimension(:), allocatable :: id_basalfw
 integer, dimension(:), allocatable :: id_basalmix_on_nrho
 
-real    :: basal_diffusivity  = 5.0e-3      ! enhancement to the vertical diffusivity (m^2/s) at river mouths
-logical :: basal_diffuse_temp = .false.    ! to enhance diffusivity of temp at river mouths over river_thickness column
-logical :: basal_diffuse_salt = .false.    ! to enhance diffusivity of salt at river mouths over river_thickness column
-
-
 integer :: id_neut_rho_basalmix    =-1
 integer :: id_wdian_rho_basalmix   =-1
 integer :: id_tform_rho_basalmix   =-1
@@ -159,6 +154,7 @@ integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
 logical :: use_basal_module       = .true. 
 logical :: use_icb_module       = .true. 
+logical :: use_brine_module       = .true. 
 logical :: test_nml = .false.
 
 ! internally set for computing watermass diagnostics
@@ -192,12 +188,11 @@ real    :: limit_salt_restore    = 3600.
 integer :: secs_restore
 integer :: initial_day
 integer :: initial_secs
-real, allocatable :: sdiffo(:)
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, &
-          basal_diffuse_temp, basal_diffuse_salt, basal_diffusivity
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+          
 
 contains
 
@@ -390,7 +385,7 @@ end subroutine ocean_basal_tracer_init
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal, diff_cbt, index_temp, &
+subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal, index_temp, &
                                index_salt, basal3d)
 
   type(ocean_time_type),          intent(in)      :: Time
@@ -399,7 +394,6 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: basal
-  real, dimension(isd:,jsd:,:,:), intent(inout)   :: diff_cbt
   real, dimension(isd:,jsd:,:)  , intent(inout)   :: basal3d
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
@@ -418,7 +412,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   num_prog_tracers = size(T_prog(:))
 
   IF ( param_choice == 1 ) THEN
-    CALL basal_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), basal, diff_cbt, index_temp, &
+    CALL basal_tracer_source_1(Time, Time_steps, Thickness, T_prog(1:num_prog_tracers), basal, index_temp, &
                                index_salt, misfkt, misfkb, Dens, basal3d)
   ELSEIF ( param_choice == 3 ) THEN
     !Do nothing for the moment
@@ -426,13 +420,6 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
 
   call watermass_diag_basal(Time, Dens, T_prog, basal, &
   T_prog(index_temp)%wrk1(:,:,:),T_prog(index_salt)%wrk1(:,:,:), misfkt, misfkb)
-
-  if(basal_diffuse_temp) then
-     call basal_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1), basal, misfkt, misfkb)
-  endif
-  if(basal_diffuse_salt) then
-     call basal_kappa(Time, Thickness, T_prog(index_salt), diff_cbt(isd:ied,jsd:jed,:,2), basal, misfkt, misfkb)
-  endif
 
   deallocate ( misfkt, misfkb )
 
@@ -447,7 +434,7 @@ end subroutine basal_tracer_source
 ! time tendencies of tracers due to damping by basal.
 ! </DESCRIPTION>
 !
-subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,diff_cbt,index_temp, index_salt, &
+subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,index_temp, index_salt, &
                                  misfkt, misfkb, Dens, basal3d)
   ! Case: specified fwf and heat flux forcing beneath the ice shelf
   type(ocean_time_type),          intent(in)     :: Time
@@ -457,7 +444,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real, dimension(isd:,jsd:),     intent(inout)  :: basal_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
-  real, dimension(isd:,jsd:,:,:), intent(inout)  :: diff_cbt
   integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
   type(ocean_density_type),       intent(in)     :: Dens
   real, dimension(isd:,jsd:,:),   intent(inout)  :: basal3d
@@ -484,8 +470,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   real    :: zextra, zinsert, tracerextra, tracernew(nk)
   real    :: tracer_input, tfreezing, tbasal, tbasal_sum
   real    :: maxinsertiondepth,mininsertiondepth
-  logical :: river_diffuse_temp=.true.    ! to enhance diffusivity of temp at river mouths over river_thickness column
-  logical :: river_diffuse_salt=.true.    ! to enhance diffusivity of salt at river mouths over river_thickness column
   integer :: stdoutunit,stdlogunit
   character(len=128) :: name
   real    :: sal, press, delta_s
@@ -624,12 +608,16 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
               tbasal_sum = 0.0
               tracernew(:) = 0.0
 
+              do k=misfkt(i,j),misfkb(i,j)
+                 basal3d(i,j,k) = fwfisf(i,j)*delta(k)
+              enddo
+
               if ( trim(T_prog(n)%name) == 'temp' ) then
                  zextra=0.0
                  do k=misfkt(i,j),misfkb(i,j)
                     tracernew(k) = 0.0
 
-                    basal3d(i,j,k) = fwfisf(i,j)*delta(k)
+                    !basal3d(i,j,k) = fwfisf(i,j)*delta(k)
                     zinsert = basal3d(i,j,k)*dtime
 
                     if (gade_line == 0 ) then
@@ -714,14 +702,6 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,di
   deallocate ( rhisf_tbl, r1_hisf_tbl )
   deallocate ( risf_tsc_b, risf_tsc )
   deallocate ( risf_tsc_3d_b, risf_tsc_3d )
-
-!  if(river_diffuse_temp) then
-!     call river_kappa(Time, Thickness, T_prog(index_temp), diff_cbt(isd:ied,jsd:jed,:,1))
-!  endif
-!  if(river_diffuse_salt) then
-!     call river_kappa(Time, Thickness, T_prog(index_salt), diff_cbt(isd:ied,jsd:jed,:,2))
-!  endif
-
 
 end subroutine basal_tracer_source_1
 ! </SUBROUTINE> NAME="basal_tracer_source_1"
@@ -1315,73 +1295,6 @@ subroutine watermass_diag_basal(Time, Dens, T_prog, basal, &
 
 end subroutine watermass_diag_basal
 ! </SUBROUTINE> NAME="watermass_diag_basal"
-
-
-!#######################################################################
-! <SUBROUTINE NAME="basal_kappa">
-!
-! <DESCRIPTION>
-! This subroutine enhances the vertical diffusivity kappa over
-! a vertical column whose thickness is set by river_diffusion_thickness
-! and whose horizontal location is given by the rmask array.
-! Note that rmask can be > 0 even if river=0 in the case when
-! use virtual salt flux.
-! The enhanced diffusivity is maximum at the top cell and is linearly
-! interpolated to the normal diffusivity at the depth set by
-! river_diffusion_thickness
-! </DESCRIPTION>
-!
-subroutine basal_kappa (Time, Thickness, Tracer, kappa, basal_i, misfkt, misfkb)
-
-  type(ocean_time_type),         intent(in)    :: Time
-  type(ocean_thickness_type),    intent(in)    :: Thickness
-  type(ocean_prog_tracer_type),  intent(in)    :: Tracer
-  real, dimension(isd:,jsd:,:),  intent(inout) :: kappa
-  real, dimension(isd:,jsd:),     intent(in)  :: basal_i
-  integer, dimension(isd:,jsd:),  intent(in)  :: misfkt,misfkb ! Top and bottom input depths
-  integer :: i, j, k
-  !real    :: depth
-  real    :: delta(nk),thkocean
-  !real, dimension(nk) :: zw_ij
-
-  !if(.not. module_is_initialized ) then
-  !  call mpp_error(FATAL, &
-  !  '==>Error in ocean_basalmix_mod (basal_kappa): module must be initialized')
-  !endif
-
-  wrk1  = 0.0
-
-  do j=jsc,jec
-     do i=isc,iec
-
-        if (basal_i(i,j) > 0.0) then
-            !delta = 0.0
-            !thkocean = 0.0
-
-            !do k=misfkt(i,j),misfkb(i,j)
-            !   thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
-            !enddo
-            !do k=misfkt(i,j),misfkb(i,j)
-            !   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
-            !enddo
-
-            do k=misfkt(i,j),misfkb(i,j)
-              wrk1(i,j,k)  = basal_diffusivity
-              kappa(i,j,k) = kappa(i,j,k) + wrk1(i,j,k)
-            enddo
-        endif
-     enddo
-  enddo
-
-  !if (id_diff_cbt_river_t > 0 .and. Tracer%name=='temp') then
-  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_t, wrk1(:,:,:))
-  !endif
-  !if (id_diff_cbt_river_s > 0 .and. Tracer%name=='salt') then
-  !   call diagnose_3d(Time, Grd, id_diff_cbt_river_s, wrk1(:,:,:))
-  !endif
-
-end subroutine basal_kappa
-! </SUBROUTINE> NAME="basal_kappa"
 
 
 !#######################################################################
