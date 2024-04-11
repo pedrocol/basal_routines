@@ -30,11 +30,23 @@ module ocean_brine_tracer_mod
 !  </DATA> 
 !</NAMELIST>
 !
-
+use diag_manager_mod,         only: register_diag_field
+use fms_mod,                  only: write_version_number, open_namelist_file, close_file
+use fms_mod,                  only: file_exist
+use fms_mod,                  only: open_namelist_file, check_nml_error, close_file
+use fms_mod,                  only: read_data, lowercase, FATAL, WARNING, stdout, stdlog
+use mpp_mod,                  only: input_nml_file, mpp_sum, mpp_error, mpp_max
+use ocean_domains_mod,        only: get_local_indices
+use ocean_types_mod,          only: ocean_domain_type, ocean_grid_type, ocean_thickness_type
+use ocean_types_mod,          only: ocean_prog_tracer_type, ocean_options_type, ocean_time_type
+use ocean_types_mod,          only: ocean_density_type
+use ocean_workspace_mod,      only: wrk1, wrk2, wrk3, wrk4, wrk5, wrk1_2d
+use ocean_workspace_mod,      only: wrk1, wrk2, wrk3, wrk4, wrk5, wrk1_2d
+use ocean_util_mod,           only: diagnose_3d
 use constants_mod,            only: epsln
-use axis_utils_mod,           only: frac_index
+use axis_utils_mod,           only: frac_index, nearest_index
 
-implicit nonea
+implicit none
 
 private
 
