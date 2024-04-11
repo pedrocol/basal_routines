@@ -36,15 +36,23 @@ use fms_mod,                  only: file_exist
 use fms_mod,                  only: open_namelist_file, check_nml_error, close_file
 use fms_mod,                  only: read_data, lowercase, FATAL, WARNING, stdout, stdlog
 use mpp_mod,                  only: input_nml_file, mpp_sum, mpp_error, mpp_max
+use time_interp_external_mod, only: init_external_field, time_interp_external
+use time_manager_mod,         only: time_type, set_date, get_time
+use time_manager_mod,         only: operator( + ), operator( - ), operator( // )
+use time_manager_mod,         only: operator( > ), operator( == ), operator( <= )
+
 use ocean_domains_mod,        only: get_local_indices
+use ocean_parameters_mod,     only: missing_value
 use ocean_types_mod,          only: ocean_domain_type, ocean_grid_type, ocean_thickness_type
 use ocean_types_mod,          only: ocean_prog_tracer_type, ocean_options_type, ocean_time_type
 use ocean_types_mod,          only: ocean_density_type
 use ocean_workspace_mod,      only: wrk1, wrk2, wrk3, wrk4, wrk5, wrk1_2d
-use ocean_workspace_mod,      only: wrk1, wrk2, wrk3, wrk4, wrk5, wrk1_2d
 use ocean_util_mod,           only: diagnose_3d
 use constants_mod,            only: epsln
 use axis_utils_mod,           only: frac_index, nearest_index
+use ocean_types_mod,          only: ocean_time_type, ocean_time_steps_type, ocean_options_type
+use ocean_util_mod,           only: diagnose_2d, diagnose_3d, diagnose_sum
+use ocean_tracer_util_mod,    only: diagnose_3d_rho
 
 implicit none
 
@@ -64,8 +72,8 @@ character (len=128) :: tagname = '$Name: tikal $'
 ! for diagnostics
 logical :: used
 integer, dimension(:), allocatable :: id_basal_tend
-integer :: id_basal_fwflx        =-1
-integer :: id_basal_fwflx2d        =-1
+integer :: id_brine_fwflx        =-1
+integer :: id_brine_fwflx2d      =-1
 
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
@@ -164,7 +172,7 @@ subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
               standard_name='water_flux2d_out_sea_water_from_brine_melting')
 
-end subroutine ocean_basal_tracer_init
+end subroutine ocean_brine_tracer_init
 ! </SUBROUTINE> NAME="ocean_basal_tracer_init"
 
 !#######################################################################
@@ -187,7 +195,9 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   real, dimension(isd:,jsd:,:)  , intent(inout)   :: brine3d
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
-  integer :: param_choice,n
+  integer :: i, j, k, n
+  integer :: param_choice
+  integer :: taum1, tau, taup1
   real    :: maxinsertiondepth, depth, thkocean
   real    :: delta(nk)
   integer :: max_nk
@@ -214,8 +224,8 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
                do k=1,max_nk
                   !Brine rejected is performed via change in the concentration (it's not a salt flux)
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
-                  brine3d(i,j) = brine(i,j)*delta(k)
-                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  brine3d(i,j)
+                  brine3d(i,j,k) = brine(i,j)*delta(k)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  brine3d(i,j,k)
                enddo
             endif
 
@@ -227,11 +237,6 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
           !Do nothing for the moment
   ENDIF
   
-
-
-
-
-  deallocate ( misfkt, misfkb )
 
 end subroutine brine_tracer_source
 ! </SUBROUTINE> NAME="brine_tracer_source"
