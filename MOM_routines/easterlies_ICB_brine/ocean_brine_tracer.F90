@@ -121,7 +121,7 @@ subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   if ( module_is_initialized ) then
     call mpp_error(FATAL, &
-    '==>Error in ocean_basal_tracer_mod (ocean_basal_tracer_init): module already initialized')
+    '==>Error in ocean_brine_tracer_mod (ocean_brine_tracer_init): module already initialized')
   endif
 
   module_is_initialized = .TRUE.
@@ -155,25 +155,25 @@ subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   if(use_brine_module) then
       write(stdoutunit,*)'==>Note from ocean_brine_tracer_mod: Using this module.'
-      Ocean_options%ocean_basal_tracer= 'Used ocean tracer brine.'
+      Ocean_options%ocean_brine_tracer= 'Used ocean tracer brine.'
   else
       write(stdoutunit,*)'==>Note from ocean_brine_tracer_mod: NOT using ocean tracer brine.'
-      Ocean_options%ocean_basal_tracer= 'Did NOT use ocean tracer brine.'
+      Ocean_options%ocean_brine_tracer= 'Did NOT use ocean tracer brine.'
       return
   endif
 
   ! register diagnostic outputs
-  id_brine_fwflx = register_diag_field ('ocean_model','basal_fwflx', Grd%tracer_axes(1:3),   &
+  id_brine_fwflx = register_diag_field ('ocean_model','brine_fwflx', Grd%tracer_axes(1:3),   &
               Time%model_time, '3d mass flux of liquid brine meltwater leaving ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
               standard_name='water_flux3d_out_sea_water_from_brine_melting')
-  id_brine_fwflx2d = register_diag_field ('ocean_model','basal_fwflx2d', Grd%tracer_axes(1:2),   &
+  id_brine_fwflx2d = register_diag_field ('ocean_model','brine_fwflx2d', Grd%tracer_axes(1:2),   &
               Time%model_time, '2d mass flux of liquid brine meltwater leaving ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
               standard_name='water_flux2d_out_sea_water_from_brine_melting')
 
 end subroutine ocean_brine_tracer_init
-! </SUBROUTINE> NAME="ocean_basal_tracer_init"
+! </SUBROUTINE> NAME="ocean_brine_tracer_init"
 
 !#######################################################################
 ! <SUBROUTINE NAME="brine_tracer_source">
