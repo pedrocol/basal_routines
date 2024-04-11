@@ -1654,8 +1654,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !     T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, calving, &
        !     upme, uriver, swflx, swflx_vis, patm)
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
-            T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, icb, calving, &
-            brine, frazil_tau, upme, uriver, swflx, swflx_vis, patm)
+            T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal, icb, brine, calving, &
+            frazil_tau, upme, uriver, swflx, swflx_vis, patm)
        !Pedro
        call mpp_clock_end(id_sbc)
 

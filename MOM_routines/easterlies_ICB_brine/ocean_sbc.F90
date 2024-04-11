@@ -3265,7 +3265,7 @@ end subroutine ocean_sfc_end
 !
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
-                         pme, melt, river, runoff, basal, icb, calving, brine, frazil_tau, upme, uriver,  &
+                         pme, melt, river, runoff, basal, icb, brine, calving, frazil_tau, upme, uriver,  &
                          swflx, swflx_vis, patm)
 
 
@@ -4081,7 +4081,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(zero_net_water_coupler) then 
          do j=jsc,jec
             do i=isc,iec
-               pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) - melt(i,j) - wrk1_2d(i,j) !Pedro
+               pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) + brine(i,j) - melt(i,j) - wrk1_2d(i,j) !Pedro
             enddo
          enddo
          pme_river_total = mpp_global_sum(Dom%domain2d,pme_river(:,:)*Grd%dat(:,:)*Grd%tmask(:,:,1),&
@@ -4189,6 +4189,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !Pedro
   call mpp_update_domains(basal(:,:), Dom%domain2d)
   call mpp_update_domains(icb(:,:)  , Dom%domain2d)
+  call mpp_update_domains(brine(:,:)  , Dom%domain2d)
   !Pedro
 
   !---------------surface pressure from ice and atmos-----------
@@ -4457,7 +4458,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   !--------send diagnostics------------------- 
   !
   call ocean_sbc_diag (Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary,        &
-                      pme, runoff, calving, river, basal, icb, alphasfc, betasfc, alphasfc2, betasfc2, &
+                      pme, runoff, calving, river, basal, icb, brine, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip, frozen_precip, evaporation, sensible, longwave, &
                       latent, swflx, swflx_vis) !Pedro
 
@@ -4485,7 +4486,7 @@ end subroutine get_ocean_sbc
 ! </DESCRIPTION>
 !
 
-subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme, basal, icb)
+subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, melt, pme, basal, icb, brine)
 #if defined(ACCESS_CM) || defined(ACCESS_OM)
 
   use auscom_ice_parameters_mod, only : use_ioaice, aice_cutoff
@@ -4503,6 +4504,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
   real, dimension(isd:,jsd:),     intent(inout) :: pme
   real, dimension(isd:,jsd:),     intent(in)    :: basal !Pedro
   real, dimension(isd:,jsd:),     intent(in)    :: icb   !Pedro
+  real, dimension(isd:,jsd:),     intent(in)    :: brine   !Pedro
 
   real, dimension(isd:ied,jsd:jed) :: open_ocean_mask
   real, dimension(isd:ied,jsd:jed) :: pme_restore, flx_restore
@@ -4632,7 +4634,7 @@ subroutine flux_adjust(Time, T_diag, Dens, Ext_mode, T_prog, Velocity, river, me
                  do i=isc,iec
                     !Pedro
                     !pme_river(i,j) = pme(i,j) + river(i,j) - melt(i,j)
-                    pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) - melt(i,j)
+                    pme_river(i,j) = pme(i,j) + river(i,j) + basal(i,j) + icb(i,j) + brine(i,j) - melt(i,j)
                     !Pedro
                  enddo
               enddo
@@ -5254,7 +5256,7 @@ end subroutine flux_adjust
 ! </DESCRIPTION>
 !
 subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_boundary, pme,  &
-                      runoff, calving, river, basal, icb, alphasfc, betasfc, alphasfc2, betasfc2, &
+                      runoff, calving, river, basal, icb, brine, alphasfc, betasfc, alphasfc2, betasfc2, &
                       melt, liquid_precip,  frozen_precip, evaporation, sensible, longwave,&
                       latent, swflx, swflx_vis)
 
@@ -5270,6 +5272,7 @@ subroutine ocean_sbc_diag(Time, Velocity, Thickness, Dens, T_prog, Ice_ocean_bou
   real, dimension(isd:,jsd:),     intent(in) :: river
   real, dimension(isd:,jsd:),     intent(in) :: basal !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: icb !Pedro
+  real, dimension(isd:,jsd:),     intent(in) :: brine !Pedro
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc
   real, dimension(isd:,jsd:),     intent(in) :: betasfc
   real, dimension(isd:,jsd:),     intent(in) :: alphasfc2
