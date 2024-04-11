@@ -3265,7 +3265,7 @@ end subroutine ocean_sfc_end
 !
 
 subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_prog, Velocity, &
-                         pme, melt, river, runoff, basal, icb, brine, calving, frazil_tau, upme, uriver,  &
+                         pme, melt, river, runoff, basal, icb, brine, calving, upme, uriver,  &
                          swflx, swflx_vis, patm)
 
 
@@ -3284,7 +3284,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real, dimension(isd:,jsd:),     intent(inout) :: basal
   real, dimension(isd:,jsd:),     intent(inout) :: icb
   real, dimension(isd:,jsd:),     intent(inout) :: brine
-  real, dimension(isd:,jsd:,:),   intent(inout) :: frazil_tau
 !Pedro
   real, dimension(isd:,jsd:),     intent(inout) :: calving 
   real, dimension(isd:,jsd:),     intent(inout) :: swflx
