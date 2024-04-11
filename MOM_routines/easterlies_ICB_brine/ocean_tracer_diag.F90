@@ -2080,7 +2080,7 @@ subroutine tracer_change (Time, Thickness, T_prog, T_diag, Ext_mode, &
   write (stdoutunit,'(a,es24.17,a)') ' Mass of icb (incl. sources) liquid water input    = ',&
                                    icb_input,' kg'
   write (stdoutunit,'(a,es24.17,a)') ' Mass of brine (incl. sources) liquid water output    = ',&
-                                   icb_input,' kg'
+                                   brine_input,' kg'
   !Pedro
   write (stdoutunit,'(a,es24.17,a)') ' Mass of sea ice melt input                        = ',&
                                    melt_input,' kg'
