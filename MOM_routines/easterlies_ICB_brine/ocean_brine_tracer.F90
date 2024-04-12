@@ -207,7 +207,9 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
   param_choice = 1
 
+  tau          = Time%tau
   delta        = 0.0
+  max_nk       = 0
 
   IF ( param_choice == 1 ) THEN !Uniform dstribution 200m
       do j=jsc,jec
