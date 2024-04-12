@@ -207,24 +207,33 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
   param_choice = 1
 
+  delta        = 0.0
+
   IF ( param_choice == 1 ) THEN !Uniform dstribution 200m
       do j=jsc,jec
          do i=isc,iec
 
             if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
-               thkocean = 0.0
 
                maxinsertiondepth = 200.0
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+
+               thkocean = 0.0
                do k=1,max_nk
                   thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
                enddo
 
                do k=1,max_nk
-                  !Brine rejected is performed via change in the concentration (it's not a salt flux)
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
+               enddo
+
+               do k=1,max_nk
                   brine3d(i,j,k) = brine(i,j)*delta(k)
+               enddo
+
+               do k=1,max_nk
+                  !Brine rejected is performed via change in the concentration (it's not a salt flux)
                   Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + brine3d(i,j,k)
                enddo
             endif
