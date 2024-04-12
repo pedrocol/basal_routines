@@ -211,7 +211,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       do j=jsc,jec
          do i=isc,iec
 
-            if (brine(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
+            if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
                thkocean = 0.0
 
                maxinsertiondepth = 200.0
