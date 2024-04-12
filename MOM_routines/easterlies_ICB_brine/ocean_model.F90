@@ -1745,7 +1745,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 
        ! add icb to mass_source
        call mpp_clock_begin(id_brine_tracer)
-       call basal_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
+       call brine_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
                                 brine, index_temp, index_salt, brine3d)
        call mpp_clock_end(id_brine_tracer)
 

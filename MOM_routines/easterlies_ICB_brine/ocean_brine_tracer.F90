@@ -225,7 +225,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
                   !Brine rejected is performed via change in the concentration (it's not a salt flux)
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
                   brine3d(i,j,k) = brine(i,j)*delta(k)
-                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  brine3d(i,j,k)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + brine3d(i,j,k)
                enddo
             endif
 
