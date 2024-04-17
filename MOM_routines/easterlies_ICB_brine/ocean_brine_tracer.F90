@@ -184,7 +184,7 @@ end subroutine ocean_brine_tracer_init
 ! </DESCRIPTION>
 !
 subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine, index_temp, &
-                               index_salt, brine3d)
+                               index_salt, brine3d, hblt_depth)
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
@@ -192,7 +192,8 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: brine
-  real, dimension(isd:,jsd:,:)  , intent(inout)   :: brine3d
+  real, dimension(isd:,jsd:,:),   intent(inout)   :: brine3d
+  real, dimension(isd:,jsd:),     intent(in)      :: hblt_depth
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
   integer :: i, j, k, n
@@ -200,16 +201,14 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   integer :: taum1, tau, taup1
   real    :: maxinsertiondepth, depth, thkocean
   real    :: delta(nk)
+  real    :: sum_delta, const
   integer :: max_nk
 
 
   if(.not. use_brine_module) return
 
-  param_choice = 1
-
+  param_choice = 2
   tau          = Time%tau
-  delta        = 0.0
-  max_nk       = 0
 
   IF ( param_choice == 1 ) THEN !Uniform dstribution 200m
       do j=jsc,jec
@@ -228,9 +227,6 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
                do k=1,max_nk
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
-               enddo
-
-               do k=1,max_nk
                   brine3d(i,j,k) = brine(i,j)*delta(k)
                enddo
 
@@ -244,8 +240,52 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       enddo
 
           
-  ELSEIF ( param_choice == 2 ) THEN !Barthelemy et al., 2015
-          !Do nothing for the moment
+  ELSEIF ( param_choice == 2 ) THEN !Similar to Barthelemy et al., 2015
+
+      nn = 5.0
+      delta        = 0.0
+      sum_delta    = 0.0
+      const        = 0.0
+      max_nk       = 0
+
+      do j=jsc,jec
+         do i=isc,iec
+
+            if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
+
+               if ( hblt_depth(i,j) > 0 ) then
+                  maxinsertiondepth = hblt_depth(i,j)
+                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               else
+                  max_nk = 1
+               endif
+
+               thkocean = 0.0
+               do k=1,max_nk
+                  thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
+               enddo
+
+               do k=1,max_nk
+                  delta(k) = (Thickness%rho_dzt(i,j,k,tau) / thkocean)**nn
+                  sum_delta = sum_delta + delta(k)
+               enddo
+
+               const = 1/sum_delta
+
+               do k=1,max_nk
+                  brine3d(i,j,k) = brine(i,j)*delta(k)*const
+               enddo
+
+               do k=1,max_nk
+                  !Brine rejected is performed via change in the concentration (it's not a salt flux)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + brine3d(i,j,k)
+               enddo
+            endif
+
+         enddo
+      enddo
+
   ENDIF
   
 
