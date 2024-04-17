@@ -201,7 +201,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   integer :: taum1, tau, taup1
   real    :: maxinsertiondepth, depth, thkocean
   real    :: delta(nk)
-  real    :: sum_delta, const
+  real    :: sum_delta, const, nn
   integer :: max_nk
 
 
