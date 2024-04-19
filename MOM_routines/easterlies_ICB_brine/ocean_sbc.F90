@@ -1017,6 +1017,10 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   ierr = check_nml_error(io_status, 'ocean_sbc_nml')
   read (input_nml_file, nml=ocean_sbc_ofam_nml, iostat=io_status)
   ierr = check_nml_error(io_status, 'ocean_sbc_ofam_nml')
+  !Pedro
+  read (input_nml_file, nml=ocean_basal_tracer_nml, iostat=io_status)
+  ierr = check_nml_error(io_status, 'ocean_basal_tracer_nml')
+  !Pedro
 #else
   ioun = open_namelist_file()
   read(ioun, ocean_sbc_nml, iostat=io_status)
@@ -1024,6 +1028,11 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   rewind(ioun)
   read(ioun, ocean_sbc_ofam_nml, iostat=io_status)
   ierr = check_nml_error(io_status, 'ocean_sbc_ofam_nml')
+  !Pedro
+  rewind(ioun)
+  read(ioun, ocean_basal_tracer_nml, iostat=io_status)
+  ierr = check_nml_error(io_status, 'ocean_basal_tracer_nml')
+  !Pedro
   call close_file (ioun)
 #endif
   write (stdoutunit,'(/)')
@@ -1032,6 +1041,11 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
   write (stdoutunit,'(/)')
   write (stdoutunit, ocean_sbc_ofam_nml)
   write (stdlogunit, ocean_sbc_ofam_nml)
+  !Pedro
+  write (stdoutunit,'(/)')
+  write (stdoutunit, ocean_basal_tracer_nml)
+  write (stdlogunit, ocean_basal_tracer_nml)
+  !Pedro
 
   if(do_bitwise_exact_sum) then
      global_sum_flag = BITWISE_EXACT_SUM
@@ -3694,8 +3708,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
                 endif
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
                 if ( icb(i,j) < 0.0 ) icb(i,j) = 0.0
-             else
-                calving(i,j) = 0
              endif
           enddo
         enddo
