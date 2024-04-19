@@ -943,6 +943,10 @@ integer :: id_restore_mask_ofam = -1
 logical :: restore_mask_ofam = .false.
 logical :: river_temp_ofam = .false.
 
+logical :: use_basal_module   = .false.
+logical :: use_icb_module     = .false.
+logical :: use_brine_module   = .false.
+
 namelist /ocean_sbc_nml/ temp_restore_tscale, salt_restore_tscale, salt_restore_under_ice, salt_restore_as_salt_flux,        &
          eta_restore_tscale, zero_net_pme_eta_restore,                                                                       & 
          rotate_winds, taux_sinx, tauy_siny, use_waterflux, waterflux_tavg, max_ice_thickness, runoffspread, calvingspread,  &
@@ -961,6 +965,9 @@ namelist /ocean_sbc_nml/ temp_restore_tscale, salt_restore_tscale, salt_restore_
          do_ustar_correction, do_frazil_redist
 
 namelist /ocean_sbc_ofam_nml/ restore_mask_ofam, river_temp_ofam
+
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+
 
 contains
 
@@ -3319,12 +3326,6 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real    :: active_cells, smftu, smftv
 
   integer :: stdoutunit 
-  logical :: use_basal_module   = .false.
-  logical :: use_icb_module     = .false.
-  logical :: use_brine_module   = .false.
-
-  namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
-
 
   stdoutunit=stdout() 
 
