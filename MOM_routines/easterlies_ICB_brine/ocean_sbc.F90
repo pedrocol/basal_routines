@@ -1202,10 +1202,14 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
 
 
   !Pedro
-  filename = 'INPUT/ocean_month_output_GPC010_calving_365_final.nc'
-  calv_id = init_external_field(filename,'calving',domain=Domain%domain2d)
-  filename = 'INPUT/Merino_formom5.nc' !iceberg data
-  calv2_id = init_external_field(filename,'calving',domain=Domain%domain2d)
+  if (use_icb_module) then
+     filename = 'INPUT/ocean_month_output_GPC010_calving_365_final.nc'
+     calv_id = init_external_field(filename,'calving',domain=Domain%domain2d)
+  endif
+  if (use_basal_module) then
+     filename = 'INPUT/Merino_formom5.nc' !iceberg data
+     calv2_id = init_external_field(filename,'calving',domain=Domain%domain2d)
+  endif
 
   !Pedro
 
@@ -3582,17 +3586,19 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
           enddo
       enddo
       !Pedro
-      !Brine rejection at depth
-      do j = jsc_bnd,jec_bnd
-         do i = isc_bnd,iec_bnd
-            ii = i + i_shift
-            jj = j + j_shift
-            if ( Grd%yt(i,j) < -60.0 ) then
-               brine(ii,jj) = Ice_ocean_boundary%wfiform(i,j) * Grd%tmask(ii,jj,1)
-               pme(ii,jj) = pme(ii,jj) - brine(ii,jj)
-            endif
+      if (use_brine_module) then
+         !Brine rejection at depth
+         do j = jsc_bnd,jec_bnd
+            do i = isc_bnd,iec_bnd
+               ii = i + i_shift
+               jj = j + j_shift
+               if ( Grd%yt(i,j) < -60.0 ) then
+                  brine(ii,jj) = Ice_ocean_boundary%wfiform(i,j) * Grd%tmask(ii,jj,1)
+                  pme(ii,jj) = pme(ii,jj) - brine(ii,jj)
+               endif
+            enddo
          enddo
-      enddo
+      endif
       !Pedro
 
 
