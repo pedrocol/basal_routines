@@ -3315,9 +3315,9 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
   real    :: active_cells, smftu, smftv
 
   integer :: stdoutunit 
-  logical :: use_basal_module   = .true.
-  logical :: use_icb_module     = .true.
-  logical :: use_brine_module   = .true.
+  logical :: use_basal_module   = .false.
+  logical :: use_icb_module     = .false.
+  logical :: use_brine_module   = .false.
 
   namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
 
@@ -3638,52 +3638,53 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
 
       !Pedro
       if(use_basal_module) then
-        !import calving field
-        if (calv_id < 1) then
-          call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
-        endif
-        wrk1  = 0.0
-       ! get basal value for current time
-       call time_interp_external(calv_id, Time%model_time, wrk1)
-       do j=jsd,jed
-         do i=isd,ied
-            calving(i,j)=wrk1(i,j,1)
-         enddo
-       enddo
-       !Import iceberg field
-        if (calv2_id < 1) then
-          call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
-        endif
-        wrk1  = 0.0
-       ! get basal value for current time
-       call time_interp_external(calv2_id, Time%model_time, wrk1)
-       do j=jsd,jed
-         do i=isd,ied
-            calving2(i,j)=wrk1(i,j,1)
-         enddo
-       enddo
+         !import calving field
+         if (calv_id < 1) then
+           call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+         endif
+         wrk1  = 0.0
+        ! get basal value for current time
+        call time_interp_external(calv_id, Time%model_time, wrk1)
+        do j=jsd,jed
+          do i=isd,ied
+             calving(i,j)=wrk1(i,j,1)
+          enddo
+        enddo
+      endif
 
+      if(use_icb_module) then
+        !Import iceberg field
+         if (calv2_id < 1) then
+           call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+         endif
+         wrk1  = 0.0
+        ! get basal value for current time
+        call time_interp_external(calv2_id, Time%model_time, wrk1)
+        do j=jsd,jed
+          do i=isd,ied
+             calving2(i,j)=wrk1(i,j,1)
+          enddo
+        enddo
+      endif
+
+      if(use_basal_module==.true.) then
         do i=isc,iec
           do j=jsc,jec
              if ( Grd%yt(i,j) < -60.0 ) then
-                !!Control
-                !basal(i,j) = 0.0
-                !icb(i,j)   = 0.0
-                !!runoff(i,j) = 0.0
-                !!calving(i,j) = 0.0
-
-                !!Basal
-                !basal(i,j) = runoff(i,j) - calving(i,j)
-                !icb(i,j)   = 0.0
-                !runoff(i,j) = calving(i,j)
-                !calving(i,j) = 0.0
-
-                !ICB
-                basal(i,j) = runoff(i,j) - calving(i,j)
-                icb(i,j)   = calving2(i,j) 
-                runoff(i,j) = 0.0
-                calving(i,j) = 0.0
-
+                if(use_icb_module==.false.) then
+                  basal(i,j) = runoff(i,j) - calving(i,j)
+                  icb(i,j)   = 0.0
+                  runoff(i,j) = calving(i,j)
+                  calving(i,j) = 0.0
+                else if (use_icb_module==.true.) then
+                  basal(i,j) = runoff(i,j) - calving(i,j)
+                  icb(i,j)   = calving2(i,j) 
+                  runoff(i,j) = 0.0
+                  calving(i,j) = 0.0
+                else
+                  basal(i,j) = 0.0
+                  icb(i,j)   = 0.0
+                endif
                 if ( basal(i,j) < 0.0 ) basal(i,j) = 0.0
                 if ( icb(i,j) < 0.0 ) icb(i,j) = 0.0
              else
