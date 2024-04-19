@@ -243,15 +243,16 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   ELSEIF ( param_choice == 2 ) THEN !Similar to Barthelemy et al., 2015
 
       nn = 5.0
-      delta        = 0.0
-      sum_delta    = 0.0
-      const        = 0.0
-      max_nk       = 0
 
       do j=jsc,jec
          do i=isc,iec
 
             if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
+               delta        = 0.0
+               sum_delta    = 0.0
+               const        = 0.0
+               max_nk       = 0
+               depth        = 0.0
 
                if ( hblt_depth(i,j) > 0 ) then
                   maxinsertiondepth = hblt_depth(i,j)
@@ -271,7 +272,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
                   sum_delta = sum_delta + delta(k)
                enddo
 
-               const = 1/sum_delta
+               const = 1.0/sum_delta
 
                do k=1,max_nk
                   brine3d(i,j,k) = brine(i,j)*delta(k)*const
@@ -285,7 +286,6 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
          enddo
       enddo
-
   ENDIF
   
 
