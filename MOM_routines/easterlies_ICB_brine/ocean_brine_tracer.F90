@@ -207,7 +207,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
   if(.not. use_brine_module) return
 
-  param_choice = 2
+  param_choice = 1
   tau          = Time%tau
 
   if ( param_choice == 1 ) then !Uniform dstribution
