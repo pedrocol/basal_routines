@@ -210,13 +210,13 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   param_choice = 2
   tau          = Time%tau
 
-  IF ( param_choice == 1 ) THEN !Uniform dstribution 200m
+  IF ( param_choice == 1 ) THEN !Uniform dstribution
       do j=jsc,jec
          do i=isc,iec
 
             if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
 
-               maxinsertiondepth = 200.0
+               maxinsertiondepth = 5.0
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
 
