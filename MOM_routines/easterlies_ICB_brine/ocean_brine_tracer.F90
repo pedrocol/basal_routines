@@ -290,7 +290,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   
   if (id_brine_fwflx > 0) then !basal flux
      ! basal entering the ocean (kg/m^3)*(m/s)
-     call diagnose_3d(Time, Grd, id_basal_fwflx, brine3d(:,:,:))
+     call diagnose_3d(Time, Grd, id_brine_fwflx, brine3d(:,:,:))
   endif
 
   if (id_brine_fwflx2d> 0) then !basal flux
