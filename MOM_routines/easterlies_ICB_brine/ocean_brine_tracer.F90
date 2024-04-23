@@ -210,7 +210,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   param_choice = 2
   tau          = Time%tau
 
-  IF ( param_choice == 1 ) THEN !Uniform dstribution
+  if ( param_choice == 1 ) then !Uniform dstribution
       do j=jsc,jec
          do i=isc,iec
 
@@ -240,7 +240,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       enddo
 
           
-  ELSEIF ( param_choice == 2 ) THEN !Similar to Barthelemy et al., 2015
+  elseif ( param_choice == 2 ) then !Similar to Barthelemy et al., 2015
 
       nn = 5.0
 
@@ -286,8 +286,17 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
          enddo
       enddo
-  ENDIF
+  endif
   
+  if (id_brine_fwflx > 0) then !basal flux
+     ! basal entering the ocean (kg/m^3)*(m/s)
+     call diagnose_3d(Time, Grd, id_basal_fwflx, brine3d(:,:,:))
+  endif
+
+  if (id_brine_fwflx2d> 0) then !basal flux
+     ! basal entering the ocean (kg/m^3)*(m/s)
+     call diagnose_2d(Time, Grd, id_brine_fwflx2d, brine(:,:))
+  endif
 
 end subroutine brine_tracer_source
 ! </SUBROUTINE> NAME="brine_tracer_source"
