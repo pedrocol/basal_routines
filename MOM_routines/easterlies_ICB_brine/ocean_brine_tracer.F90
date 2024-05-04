@@ -47,7 +47,6 @@ use ocean_types_mod,          only: ocean_domain_type, ocean_grid_type, ocean_th
 use ocean_types_mod,          only: ocean_prog_tracer_type, ocean_options_type, ocean_time_type
 use ocean_types_mod,          only: ocean_density_type
 use ocean_workspace_mod,      only: wrk1, wrk2, wrk3, wrk4, wrk5, wrk1_2d
-use ocean_util_mod,           only: diagnose_3d
 use constants_mod,            only: epsln
 use axis_utils_mod,           only: frac_index, nearest_index
 use ocean_types_mod,          only: ocean_time_type, ocean_time_steps_type, ocean_options_type
@@ -209,6 +208,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
   param_choice = 1
   tau          = Time%tau
+  delta        = 0.0
 
   if ( param_choice == 1 ) then !Uniform dstribution
       do j=jsc,jec
@@ -216,7 +216,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
             if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
 
-               maxinsertiondepth = 5.0
+               maxinsertiondepth = 5.1
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
 
