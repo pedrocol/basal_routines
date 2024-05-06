@@ -500,7 +500,9 @@ subroutine brine_tracer_source_1(Time, Time_steps, Thickness, T_prog, brine_i,in
               delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
            enddo
 
-           brine3d(i,j,k) = fwfisf(i,j)*delta(k)
+           do k=misfkt(i,j),misfkb(i,j)
+              brine3d(i,j,k) = fwfisf(i,j)*delta(k)
+           enddo
 
            do k=misfkt(i,j),misfkb(i,j)
               !Dilution is performed via mass add
