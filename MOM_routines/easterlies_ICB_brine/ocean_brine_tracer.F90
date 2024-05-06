@@ -502,11 +502,6 @@ subroutine brine_tracer_source_1(Time, Time_steps, Thickness, T_prog, brine_i,in
 
            brine3d(i,j,k) = fwfisf(i,j)*delta(k)
 
-           T_prog(n)%tbrine(i,j) = tbrine_sum !average for ocean_diagnostics
-           T_prog(n)%brine_tracer_flux(i,j)= &
-           Grd%tmask(i,j,1)*T_prog(index_temp)%tbrine(i,j)*fwfisf(i,j)
-
-
            do k=misfkt(i,j),misfkb(i,j)
               !Dilution is performed via mass add
               Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) +  brine3d(i,j,k)
