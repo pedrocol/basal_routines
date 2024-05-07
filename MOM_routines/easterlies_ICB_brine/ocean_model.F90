@@ -296,7 +296,7 @@ use ocean_sponges_tracer_mod,     only: ocean_sponges_tracer_init, sponge_tracer
 !Pedro
 use ocean_basal_tracer_mod,       only: ocean_basal_tracer_init, basal_tracer_source
 use ocean_icb_tracer_mod,         only: ocean_icb_tracer_init, icb_tracer_source
-use ocean_brine_tracer_mod,       only: ocean_brine_tracer_init, brine_tracer_source
+use ocean_briner_tracer_mod,       only: ocean_briner_tracer_init, briner_tracer_source
 !Pedro
 use ocean_sponges_velocity_mod,   only: ocean_sponges_velocity_init, sponge_velocity_source
 use ocean_submesoscale_mod,       only: ocean_submesoscale_init, submeso_restrat
@@ -383,8 +383,8 @@ private
   real, dimension(isd:ied,jsd:jed)      :: river         ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: runoff        ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2))
 !Pedro
-  real, dimension(isd:ied,jsd:jed)      :: brine         ! mass flux of ice formation (brine rejection flux) (kg/(s*m^2))
-  real, dimension(isd:ied,jsd:jed,nk)   :: brine3d       ! mass flux of 3D ice formation (brine rejection flux) (kg/(s*m^2))
+  real, dimension(isd:ied,jsd:jed)      :: briner         ! mass flux of ice formation (briner rejection flux) (kg/(s*m^2))
+  real, dimension(isd:ied,jsd:jed,nk)   :: briner3d       ! mass flux of 3D ice formation (briner rejection flux) (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: basal         ! mass flux of basal per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,nk)   :: basal3d       ! mass flux of basal 3d per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: icb           ! mass flux of icb per horz area (kg/(s*m^2))
@@ -417,8 +417,8 @@ private
   real, pointer, dimension(:,:)     :: river               =>NULL() ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: runoff              =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
 !Pedro
-  real, pointer, dimension(:,:)     :: brine               =>NULL() ! mass flux of ice formation (brine rejection flux) (kg/(s*m^2))
-  real, pointer, dimension(:,:,:)   :: brine3d             =>NULL() ! mass flux of 3D ice formation (brine rejection flux) (kg/(s*m^2))
+  real, pointer, dimension(:,:)     :: briner               =>NULL() ! mass flux of ice formation (briner rejection flux) (kg/(s*m^2))
+  real, pointer, dimension(:,:,:)   :: briner3d             =>NULL() ! mass flux of 3D ice formation (briner rejection flux) (kg/(s*m^2))
   real, pointer, dimension(:,:)     :: basal               =>NULL() ! mass flux of basal per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: basal3d             =>NULL() ! mass flux of basal 3d per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: icb                 =>NULL() ! mass flux of icb per horz area from (kg/(s*m^2)) 
@@ -529,10 +529,10 @@ private
   integer :: id_sw
   integer :: id_sponges_tracer
 !Pedro
-  integer :: id_brine
+  integer :: id_briner
   integer :: id_basal_tracer
   integer :: id_icb_tracer
-  integer :: id_brine_tracer
+  integer :: id_briner_tracer
 !Pedro
   integer :: id_sponges_eta
   integer :: id_sponges_velocity
@@ -761,7 +761,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     id_sponges_eta          = mpp_clock_id('(Ocean sponges_eta) '            ,grain=CLOCK_MODULE)
     id_sponges_tracer       = mpp_clock_id('(Ocean sponges_tracer) '         ,grain=CLOCK_MODULE)
 !Pedro
-    id_brine_tracer         = mpp_clock_id('(Ocean Brine rejection) '        ,grain=CLOCK_MODULE)
+    id_briner_tracer         = mpp_clock_id('(Ocean Brine rejection) '        ,grain=CLOCK_MODULE)
     id_basal_tracer         = mpp_clock_id('(Ocean basal_tracer) '           ,grain=CLOCK_MODULE)
     id_icb_tracer           = mpp_clock_id('(Ocean icb_tracer) '             ,grain=CLOCK_MODULE)
 !Pedro
@@ -1238,8 +1238,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     allocate(basal3d(isd:ied,jsd:jed,nk))
     allocate(icb(isd:ied,jsd:jed))
     allocate(icb3d(isd:ied,jsd:jed,nk))
-    allocate(brine(isd:ied,jsd:jed))
-    allocate(brine3d(isd:ied,jsd:jed,nk))
+    allocate(briner(isd:ied,jsd:jed))
+    allocate(briner3d(isd:ied,jsd:jed,nk))
 !Pedro
     allocate(calving(isd:ied,jsd:jed))
     allocate(uriver(isd:ied,jsd:jed,2))
@@ -1281,8 +1281,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     river                       = 0.0
     runoff                      = 0.0
 !Pedro
-    brine                       = 0.0
-    brine3d                     = 0.0
+    briner                       = 0.0
+    briner3d                     = 0.0
     basal                       = 0.0
     basal3d                     = 0.0
     icb                         = 0.0
@@ -1388,7 +1388,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
 !Pedro
     call ocean_basal_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options, Dens)
     call ocean_icb_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options, Dens)
-    call ocean_brine_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options, Dens)
+    call ocean_briner_tracer_init(Grid, Domain, Time, T_prog(:), dtime_t, Ocean_options, Dens)
 !Pedro
     call ocean_sponges_velocity_init(Grid, Domain, Time, dtime_u, Ocean_options)
     call ocean_sponges_eta_init(Grid, Domain, Time, dtime_t, Ocean_options)
@@ -1651,14 +1651,14 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        !     upme, uriver, swflx, swflx_vis, patm)
        call get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode,       &
             T_prog(1:num_prog_tracers), Velocity, pme, melt, river, runoff, basal,   &
-            icb, brine, calving, upme, uriver, swflx, swflx_vis, patm)
+            icb, briner, calving, upme, uriver, swflx, swflx_vis, patm)
        !Pedro
        call mpp_clock_end(id_sbc)
 
        ! compute "flux adjustments" (e.g., surface tracer restoring, flux correction)
        call mpp_clock_begin(id_flux_adjust)
        call flux_adjust(Time, T_diag(1:num_diag_tracers), Dens, Ext_mode, &
-                        T_prog(1:num_prog_tracers), Velocity, river, melt, pme, basal, icb, brine)
+                        T_prog(1:num_prog_tracers), Velocity, river, melt, pme, basal, icb, briner)
        call mpp_clock_end(id_flux_adjust)
 
        ! calculate bottom momentum fluxes and bottom tracer fluxes
@@ -1744,10 +1744,10 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        call mpp_clock_end(id_icb_tracer)
 
        ! add icb to mass_source
-       call mpp_clock_begin(id_brine_tracer)
-       call brine_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
-                                brine, index_temp, index_salt, brine3d, surf_blthick)
-       call mpp_clock_end(id_brine_tracer)
+       call mpp_clock_begin(id_briner_tracer)
+       call briner_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
+                                briner, index_temp, index_salt, briner3d, surf_blthick)
+       call mpp_clock_end(id_briner_tracer)
 
 !Pedro
 
@@ -2062,7 +2062,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     !Pedro
     call ocean_diagnostics(Time, Thickness, T_prog(1:num_prog_tracers), T_diag(1:num_diag_tracers), &
                            Adv_vel, Ext_mode, Dens, Velocity, &
-                           pme, melt, runoff, calving, visc_cbt, diff_cbt, basal, icb, brine)
+                           pme, melt, runoff, calving, visc_cbt, diff_cbt, basal, icb, briner)
     !Pedro
     call mpp_clock_end(id_diagnostics)
 
@@ -2586,7 +2586,7 @@ end subroutine ocean_model_data1D_get
 !Pedro
     write (stdoutunit,'(2x,a)')             Ocean_options%ocean_basal_tracer
     write (stdoutunit,'(2x,a)')             Ocean_options%ocean_icb_tracer
-    write (stdoutunit,'(2x,a)')             Ocean_options%ocean_brine_tracer
+    write (stdoutunit,'(2x,a)')             Ocean_options%ocean_briner_tracer
 !Pedro
     write (stdoutunit,'(2x,a)')             Ocean_options%ocean_sponges_velocity
     write (stdoutunit,'(2x,a)')             Ocean_options%fafmip_heat

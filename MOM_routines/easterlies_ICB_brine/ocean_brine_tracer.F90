@@ -1,4 +1,4 @@
-module ocean_brine_tracer_mod
+module ocean_briner_tracer_mod
 !</CONTACT>
 !
 !<CONTACT EMAIL="paul.spence@gmail.com"> Paul Spence
@@ -8,19 +8,19 @@ module ocean_brine_tracer_mod
 !</CONTACT>
 !
 !<OVERVIEW>
-! Distribute brine rejection at depth.
+! Distribute briner rejection at depth.
 !</OVERVIEW>
 !
 !<DESCRIPTION>
-! This module distributed at depth brine rejection. Brine rejection
+! This module distributed at depth briner rejection. Brine rejection
 ! happens as a change in concentration (and not as a salt flux).
-! The array brine(i,j) equals the array wfi_form of the sea-ice model
+! The array briner(i,j) equals the array wfi_form of the sea-ice model
 ! (ocean_sbc).
-! Different strategies can be followed to distribute brine at depth.
+! Different strategies can be followed to distribute briner at depth.
 ! In this module vertical homogeneous and Barthelemy et al., 2015
 ! http://dx.doi.org/10.1016/j.ocemod.2014.12.009
 !
-!<NAMELIST NAME="ocean_brine_tracer_nml">
+!<NAMELIST NAME="ocean_briner_tracer_nml">
 !  <DATA NAME="use_this_module" TYPE="logical">
 !  For using this module.  Default use_this_module=.false.
 !  </DATA> 
@@ -62,32 +62,32 @@ private
 type(ocean_domain_type), pointer :: Dom => NULL()
 type(ocean_grid_type),   pointer :: Grd => NULL()
 
-public ocean_brine_tracer_init
-public brine_tracer_source
+public ocean_briner_tracer_init
+public briner_tracer_source
 
-character(len=126)  :: version = '$Id: ocean_brine_tracer.F90,v 20.0 2013/12/14 00:16:24 fms Exp $'
+character(len=126)  :: version = '$Id: ocean_briner_tracer.F90,v 20.0 2013/12/14 00:16:24 fms Exp $'
 character (len=128) :: tagname = '$Name: tikal $'
 
 ! for diagnostics
 logical :: used
 integer, dimension(:), allocatable :: id_basal_tend
-integer :: id_brine_fwflx        =-1
-integer :: id_brine_fwflx2d      =-1
+integer :: id_briner_fwflx        =-1
+integer :: id_briner_fwflx2d      =-1
 
 integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
 logical :: use_basal_module       = .false.
-logical :: use_brine_module       = .false.
+logical :: use_briner_module       = .false.
 logical :: use_icb_module       = .false.
 logical :: test_nml = .false.
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_briner_module
           
 
 contains
 
 !#######################################################################
-! <SUBROUTINE NAME="ocean_brine_tracer_init">
+! <SUBROUTINE NAME="ocean_briner_tracer_init">
 !
 ! <DESCRIPTION>
 ! This subroutine is intended to be used to initialize addition of basal melt
@@ -95,7 +95,7 @@ contains
 ! Everything in this subroutine is a user prototype, and should be replacable.
 ! </DESCRIPTION>
 !
-subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_options, Dens)
+subroutine ocean_briner_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_options, Dens)
 
   type(ocean_grid_type),        intent(in), target :: Grid
   type(ocean_domain_type),      intent(in), target :: Domain
@@ -120,7 +120,7 @@ subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   if ( module_is_initialized ) then
     call mpp_error(FATAL, &
-    '==>Error in ocean_brine_tracer_mod (ocean_brine_tracer_init): module already initialized')
+    '==>Error in ocean_briner_tracer_mod (ocean_briner_tracer_init): module already initialized')
   endif
 
   module_is_initialized = .TRUE.
@@ -152,46 +152,46 @@ subroutine ocean_brine_tracer_init(Grid, Domain, Time, T_prog, dtime, Ocean_opti
 
   dtimer = 1.0/dtime
 
-  if(use_brine_module) then
-      write(stdoutunit,*)'==>Note from ocean_brine_tracer_mod: Using this module.'
-      Ocean_options%ocean_brine_tracer= 'Used ocean tracer brine.'
+  if(use_briner_module) then
+      write(stdoutunit,*)'==>Note from ocean_briner_tracer_mod: Using this module.'
+      Ocean_options%ocean_briner_tracer= 'Used ocean tracer briner.'
   else
-      write(stdoutunit,*)'==>Note from ocean_brine_tracer_mod: NOT using ocean tracer brine.'
-      Ocean_options%ocean_brine_tracer= 'Did NOT use ocean tracer brine.'
+      write(stdoutunit,*)'==>Note from ocean_briner_tracer_mod: NOT using ocean tracer briner.'
+      Ocean_options%ocean_briner_tracer= 'Did NOT use ocean tracer briner.'
       return
   endif
 
   ! register diagnostic outputs
-  id_brine_fwflx = register_diag_field ('ocean_model','brine_fwflx', Grd%tracer_axes(1:3),   &
-              Time%model_time, '3d mass flux of liquid brine meltwater leaving ocean ',        &
+  id_briner_fwflx = register_diag_field ('ocean_model','briner_fwflx', Grd%tracer_axes(1:3),   &
+              Time%model_time, '3d mass flux of liquid briner meltwater leaving ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
-              standard_name='water_flux3d_out_sea_water_from_brine_melting')
-  id_brine_fwflx2d = register_diag_field ('ocean_model','brine_fwflx2d', Grd%tracer_axes(1:2),   &
-              Time%model_time, '2d mass flux of liquid brine meltwater leaving ocean ',        &
+              standard_name='water_flux3d_out_sea_water_from_briner_melting')
+  id_briner_fwflx2d = register_diag_field ('ocean_model','briner_fwflx2d', Grd%tracer_axes(1:2),   &
+              Time%model_time, '2d mass flux of liquid briner meltwater leaving ocean ',        &
               '(kg/m^3)*(m/sec)', missing_value=missing_value,range=(/-1e6,1e6/),            &
-              standard_name='water_flux2d_out_sea_water_from_brine_melting')
+              standard_name='water_flux2d_out_sea_water_from_briner_melting')
 
-end subroutine ocean_brine_tracer_init
-! </SUBROUTINE> NAME="ocean_brine_tracer_init"
+end subroutine ocean_briner_tracer_init
+! </SUBROUTINE> NAME="ocean_briner_tracer_init"
 
 !#######################################################################
-! <SUBROUTINE NAME="brine_tracer_source">
+! <SUBROUTINE NAME="briner_tracer_source">
 !
 ! <DESCRIPTION>
 ! This subroutine calculates thickness weighted and density weighted
-! time tendencies of tracers due to damping by brine.
+! time tendencies of tracers due to damping by briner.
 ! </DESCRIPTION>
 !
-subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine, index_temp, &
-                               index_salt, brine3d, hblt_depth)
+subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, briner, index_temp, &
+                               index_salt, briner3d, hblt_depth)
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
   type(ocean_thickness_type),     intent(inout)   :: Thickness
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
-  real, dimension(isd:,jsd:),     intent(inout)   :: brine
-  real, dimension(isd:,jsd:,:),   intent(inout)   :: brine3d
+  real, dimension(isd:,jsd:),     intent(inout)   :: briner
+  real, dimension(isd:,jsd:,:),   intent(inout)   :: briner3d
   real, dimension(isd:,jsd:),     intent(in)      :: hblt_depth
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
@@ -204,7 +204,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
   integer :: max_nk
 
 
-  if(.not. use_brine_module) return
+  if(.not. use_briner_module) return
 
   param_choice = 1
   tau          = Time%tau
@@ -214,7 +214,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       do j=jsc,jec
          do i=isc,iec
 
-            if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
+            if (briner(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
 
                maxinsertiondepth = 5.1
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
@@ -227,12 +227,12 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
 
                do k=1,max_nk
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
-                  brine3d(i,j,k) = brine(i,j)*delta(k)
+                  briner3d(i,j,k) = briner(i,j)*delta(k)
                enddo
 
                do k=1,max_nk
                   !Brine rejected is performed via change in the concentration (it's not a salt flux)
-                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + brine3d(i,j,k)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + briner3d(i,j,k)
                enddo
             endif
 
@@ -247,7 +247,7 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       do j=jsc,jec
          do i=isc,iec
 
-            if (brine(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
+            if (briner(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
                delta        = 0.0
                sum_delta    = 0.0
                const        = 0.0
@@ -275,12 +275,12 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
                const = 1.0/sum_delta
 
                do k=1,max_nk
-                  brine3d(i,j,k) = brine(i,j)*delta(k)*const
+                  briner3d(i,j,k) = briner(i,j)*delta(k)*const
                enddo
 
                do k=1,max_nk
                   !Brine rejected is performed via change in the concentration (it's not a salt flux)
-                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + brine3d(i,j,k)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + briner3d(i,j,k)
                enddo
             endif
 
@@ -288,18 +288,18 @@ subroutine brine_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine,
       enddo
   endif
   
-  if (id_brine_fwflx > 0) then !basal flux
+  if (id_briner_fwflx > 0) then !basal flux
      ! basal entering the ocean (kg/m^3)*(m/s)
-     call diagnose_3d(Time, Grd, id_brine_fwflx, brine3d(:,:,:))
+     call diagnose_3d(Time, Grd, id_briner_fwflx, briner3d(:,:,:))
   endif
 
-  if (id_brine_fwflx2d> 0) then !basal flux
+  if (id_briner_fwflx2d> 0) then !basal flux
      ! basal entering the ocean (kg/m^3)*(m/s)
-     call diagnose_2d(Time, Grd, id_brine_fwflx2d, brine(:,:))
+     call diagnose_2d(Time, Grd, id_briner_fwflx2d, briner(:,:))
   endif
 
-end subroutine brine_tracer_source
-! </SUBROUTINE> NAME="brine_tracer_source"
+end subroutine briner_tracer_source
+! </SUBROUTINE> NAME="briner_tracer_source"
 
 
 
@@ -309,4 +309,4 @@ end subroutine brine_tracer_source
 
 
 
-end module ocean_brine_tracer_mod
+end module ocean_briner_tracer_mod

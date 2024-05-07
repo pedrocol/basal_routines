@@ -153,7 +153,7 @@ integer :: num_prog_tracers      = 0
 logical :: module_is_initialized = .FALSE.
 logical :: use_basal_module       = .false. 
 logical :: use_icb_module       = .false. 
-logical :: use_brine_module       = .false. 
+logical :: use_briner_module       = .false. 
 
 ! internally set for computing watermass diagnostics
 logical :: compute_watermass_diag_ba = .false.
@@ -189,7 +189,7 @@ integer :: initial_secs
 logical :: debug_all_in_top_cell = .false.
 
 
-namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_brine_module
+namelist /ocean_basal_tracer_nml/ use_basal_module, use_icb_module, use_briner_module
           
 
 contains
