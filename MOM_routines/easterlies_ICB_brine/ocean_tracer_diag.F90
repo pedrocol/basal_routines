@@ -1018,7 +1018,7 @@ subroutine ocean_tracer_diagnostics(Time, Thickness, T_prog, T_diag, Dens, &
   
   call mpp_clock_begin(id_conservation)
   if (nint(dtts) /= 0) then 
-    call mass_conservation   (Time, Thickness, Ext_mode, pme, runoff, calving) ! Basal, icb and briner conservation via mass_source
+    call mass_conservation   (Time, Thickness, Ext_mode, pme, runoff, calving, basal, icb, briner) !Pedro
     call tracer_conservation (Time, Thickness, T_prog, T_diag, pme, runoff, calving, basal, icb, briner) !Pedro
   endif 
   call mpp_clock_end(id_conservation)
@@ -2924,7 +2924,7 @@ end subroutine tracer_land_cell_check
 !
 ! </DESCRIPTION>
 !
-subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
+subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, basal, icb, briner)
 
   type(ocean_time_type),          intent(in) :: Time
   type(ocean_thickness_type),     intent(in) :: Thickness
@@ -2932,6 +2932,9 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
   real, dimension(isd:,jsd:),     intent(in) :: pme
   real, dimension(isd:,jsd:),     intent(in) :: runoff
   real, dimension(isd:,jsd:),     intent(in) :: calving
+  real, dimension(isd:,jsd:),     intent(in) :: basal
+  real, dimension(isd:,jsd:),     intent(in) :: icb
+  real, dimension(isd:,jsd:),     intent(in) :: briner
 
 
   real :: total_time
@@ -2963,12 +2966,18 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
     allocate (runoff_flux(isd:ied,jsd:jed))
     allocate (source_flux(isd:ied,jsd:jed))
     allocate (calving_flux(isd:ied,jsd:jed))
+    allocate (basal_flux(isd:ied,jsd:jed))
+    allocate (icb_flux(isd:ied,jsd:jed))
+    allocate (briner_flux(isd:ied,jsd:jed))
     allocate (eta_smooth(isd:ied,jsd:jed))
     allocate (pbot_smooth(isd:ied,jsd:jed))
     pme_flux     = 0.0
     runoff_flux  = 0.0
     source_flux  = 0.0
     calving_flux = 0.0
+    basal_flux   = 0.0
+    icb_flux     = 0.0
+    briner_flux  = 0.0
     eta_smooth   = 0.0
     pbot_smooth  = 0.0
     mass_start   = 0.0
@@ -3003,6 +3012,9 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
             pme_flux(i,j)     = pme_flux(i,j)    + dteta*Grd%dat(i,j)*pme(i,j)
             runoff_flux(i,j)  = runoff_flux(i,j) + dteta*Grd%dat(i,j)*runoff(i,j)
             calving_flux(i,j) = calving_flux(i,j)+ dteta*Grd%dat(i,j)*calving(i,j)
+            basal_flux(i,j)   = basal_flux(i,j)  + dteta*Grd%dat(i,j)*basal(i,j)
+            icb_flux(i,j)     = icb_flux(i,j)    + dteta*Grd%dat(i,j)*icb(i,j)
+            briner_flux(i,j)  = briner_flux(i,j) + dteta*Grd%dat(i,j)*briner(i,j)
             source_flux(i,j)  = source_flux(i,j) + dteta*Grd%dat(i,j)*Ext_mode%source(i,j)
             eta_smooth(i,j)   = eta_smooth(i,j)  + dteta*Grd%tmask(i,j,1)*Grd%dat(i,j)*Ext_mode%eta_smooth(i,j)
             pbot_smooth(i,j)  = pbot_smooth(i,j) + dteta*Grd%tmask(i,j,1)*Grd%dat(i,j)*Ext_mode%pbot_smooth(i,j)
@@ -3016,6 +3028,9 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
          pme_flux(:,:)     = pme_flux(:,:)*Grd%obc_tmask(:,:)
          runoff_flux(:,:)  = runoff_flux(:,:)*Grd%obc_tmask(:,:)
          calving_flux(:,:) = calving_flux(:,:)*Grd%obc_tmask(:,:)
+         basal_flux(:,:)   = basal_flux(:,:)*Grd%obc_tmask(:,:)
+         icb_flux(:,:)     = icb_flux(:,:)*Grd%obc_tmask(:,:)
+         briner_flux(:,:)  = briner_flux(:,:)*Grd%obc_tmask(:,:)
          source_flux(:,:)  = source_flux(:,:)*Grd%obc_tmask(:,:)
          eta_smooth(:,:)   = eta_smooth(:,:)*Grd%obc_tmask(:,:)
          pbot_smooth(:,:)  = pbot_smooth(:,:)*Grd%obc_tmask(:,:)
@@ -3025,10 +3040,14 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
       pme_input        = mpp_global_sum(Dom%domain2d,pme_flux(:,:),global_sum_flag)
       runoff_input     = mpp_global_sum(Dom%domain2d,runoff_flux(:,:),global_sum_flag)
       calving_input    = mpp_global_sum(Dom%domain2d,calving_flux(:,:),global_sum_flag)
+      basal_input      = mpp_global_sum(Dom%domain2d,basal_flux(:,:),global_sum_flag)
+      icb_input        = mpp_global_sum(Dom%domain2d,icb_flux(:,:),global_sum_flag)
+      briner_input     = mpp_global_sum(Dom%domain2d,briner_flux(:,:),global_sum_flag)
       source_input     = mpp_global_sum(Dom%domain2d,source_flux(:,:),global_sum_flag)
       mass_eta_smooth  = mpp_global_sum(Dom%domain2d,eta_smooth(:,:), global_sum_flag)
       mass_pbot_smooth = mpp_global_sum(Dom%domain2d,pbot_smooth(:,:),global_sum_flag)
-      mass_input       = pme_input + runoff_input + calving_input + source_input + mass_eta_smooth + mass_pbot_smooth
+      mass_input       = pme_input + runoff_input + calving_input + basal_input + icb_input + briner_input +&
+                         source_input + mass_eta_smooth + mass_pbot_smooth
 
       total_time      = (itte_mass-itts_mass+1)*dtts+epsln
       mass_chg        = mass_final - mass_start
@@ -3056,6 +3075,12 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving)
       ' Mass input via runoff fluxes over time interval      = ',runoff_input,' kg.'
       write (stdoutunit,'(a,es24.17,a)') &
       ' Mass input via ice calving fluxes over time interval = ',calving_input,' kg.'
+      write (stdoutunit,'(a,es24.17,a)') &
+      ' Mass input via basal fluxes over time interval       = ',basal_input,' kg.'
+      write (stdoutunit,'(a,es24.17,a)') &
+      ' Mass input via icb fluxes over time interval         = ',icb_input,' kg.'
+      write (stdoutunit,'(a,es24.17,a)') &
+      ' Mass input via briner rej. fluxes over time interval = ',briner_input,' kg.'
       write (stdoutunit,'(a,es24.17,a)') &
       ' Mass input via source fluxes over time interval      = ',source_input,' kg.'
       write (stdoutunit,'(a,es24.17,a)') &
