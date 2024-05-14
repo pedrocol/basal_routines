@@ -2941,6 +2941,7 @@ subroutine mass_conservation (Time, Thickness, Ext_mode, pme, runoff, calving, b
   real :: mass_error, mass_error_rate
   real :: mass_input, mass_eta_smooth, mass_pbot_smooth, mass_chg
   real :: pme_input, runoff_input, calving_input, source_input
+  real :: basal_input, icb_input, briner_input
 
   integer :: i, j
   integer :: itt, taum1, tau, taup1
