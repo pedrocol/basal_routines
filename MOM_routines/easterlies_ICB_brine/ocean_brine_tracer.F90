@@ -201,6 +201,7 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   real    :: maxinsertiondepth, depth, thkocean
   real    :: delta(nk)
   real    :: sum_delta, const, nn
+  real    :: threshold_depth
   integer :: max_nk
 
 
@@ -262,6 +263,8 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                   max_nk = 1
                endif
 
+               if (max_nk < 1) max_nk = 1 !mld smaller than the first cell thickness
+
                thkocean = 0.0
                do k=1,max_nk
                   thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
@@ -286,7 +289,61 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
 
          enddo
       enddo
-  endif
+  elseif ( param_choice == 3 ) then !Similar to Barthelemy et al., 2015 but with 30m threshold 
+
+      nn = 1.0
+      threshold_depth = 30.0
+
+      do j=jsc,jec
+         do i=isc,iec
+
+            if (briner(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
+               delta        = 0.0
+               sum_delta    = 0.0
+               const        = 0.0
+               max_nk       = 0
+               depth        = 0.0
+
+               if ( hblt_depth(i,j) > 0 ) then
+                  !maxinsertiondepth = hblt_depth(i,j)
+                  if ( hblt_depth(i,j) >= threshold_depth ) then
+                     maxinsertiondepth = threshold_depth
+                  else
+                     maxinsertiondepth =  hblt_depth(i,j)
+                  endif
+                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               else
+                  max_nk = 1
+               endif
+
+               if (max_nk < 1) max_nk = 1 !mld smaller than the first cell thickness
+
+               thkocean = 0.0
+               do k=1,max_nk
+                  thkocean = thkocean + Thickness%rho_dzt(i,j,k,tau)
+               enddo
+
+               do k=1,max_nk
+                  delta(k) = (Thickness%rho_dzt(i,j,k,tau) / thkocean)**nn
+                  sum_delta = sum_delta + delta(k)
+               enddo
+
+               const = 1.0/sum_delta
+
+               do k=1,max_nk
+                  briner3d(i,j,k) = briner(i,j)*delta(k)*const
+               enddo
+
+               do k=1,max_nk
+                  !Brine rejected is performed via change in the concentration (it's not a salt flux)
+                  Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + briner3d(i,j,k)
+               enddo
+            endif
+
+         enddo
+      enddo
+  endif !param_choice
   
   if (id_briner_fwflx > 0) then !basal flux
      ! basal entering the ocean (kg/m^3)*(m/s)
