@@ -204,12 +204,12 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   real    :: threshold_depth
   integer :: max_nk
 
-
   if(.not. use_briner_module) return
 
-  param_choice = 1
+  param_choice = 3
   tau          = Time%tau
   delta        = 0.0
+  briner3d(:,:,:) = 0.0
 
   if ( param_choice == 1 ) then !Uniform dstribution
       do j=jsc,jec
@@ -217,9 +217,10 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
 
             if (briner(i,j) < 0.0 .and. Grd%kmt(i,j) > 0) then
 
-               maxinsertiondepth = 5.1
+               maxinsertiondepth = 200.0
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               max_nk = max(1,max_nk)
 
                thkocean = 0.0
                do k=1,max_nk
@@ -228,6 +229,9 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
 
                do k=1,max_nk
                   delta(k) = Thickness%rho_dzt(i,j,k,tau)/(epsln+thkocean)
+               enddo
+
+               do k=1,max_nk
                   briner3d(i,j,k) = briner(i,j)*delta(k)
                enddo
 
@@ -255,15 +259,10 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                max_nk       = 0
                depth        = 0.0
 
-               if ( hblt_depth(i,j) > 0 ) then
-                  maxinsertiondepth = hblt_depth(i,j)
-                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
-                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
-               else
-                  max_nk = 1
-               endif
-
-               if (max_nk < 1) max_nk = 1 !mld smaller than the first cell thickness
+               maxinsertiondepth = hblt_depth(i,j)
+               depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+               max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               max_nk = max(1,max_nk)
 
                thkocean = 0.0
                do k=1,max_nk
@@ -292,7 +291,7 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   elseif ( param_choice == 3 ) then !Similar to Barthelemy et al., 2015 but with 30m threshold 
 
       nn = 1.0
-      threshold_depth = 30.0
+      threshold_depth = 10.0
 
       do j=jsc,jec
          do i=isc,iec
@@ -304,20 +303,14 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                max_nk       = 0
                depth        = 0.0
 
-               if ( hblt_depth(i,j) > 0 ) then
-                  !maxinsertiondepth = hblt_depth(i,j)
-                  if ( hblt_depth(i,j) >= threshold_depth ) then
-                     maxinsertiondepth = threshold_depth
-                  else
-                     maxinsertiondepth =  hblt_depth(i,j)
-                  endif
-                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
-                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               if ( hblt_depth(i,j) >= threshold_depth ) then
+                  maxinsertiondepth = threshold_depth
                else
-                  max_nk = 1
+                  maxinsertiondepth =  hblt_depth(i,j)
                endif
-
-               if (max_nk < 1) max_nk = 1 !mld smaller than the first cell thickness
+               depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+               max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+               max_nk = max(1,max_nk)
 
                thkocean = 0.0
                do k=1,max_nk
@@ -339,10 +332,12 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                   !Brine rejected is performed via change in the concentration (it's not a salt flux)
                   Thickness%mass_source(i,j,k) = Thickness%mass_source(i,j,k) + briner3d(i,j,k)
                enddo
-            endif
 
-         enddo
-      enddo
+
+            endif !briner < 0
+
+         enddo !i
+      enddo !j
   endif !param_choice
   
   if (id_briner_fwflx > 0) then !basal flux
