@@ -304,8 +304,9 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                max_nk       = 0
                depth        = 0.0
 
-               if ( basal(i,j  ) > 0.0 .or. basal(i+1,j  ) > 0.0 .or. basal(i-1,j  ) > 0.0 &
-                    basal(i,j+1) > 0.0 .or. basal(i+1,j+1) > 0.0 .or. basal(i-1,j-1) > 0.0 ) then
+               if ( basal(i,j  ) > 0.0 .or. basal(i+1,j  ) > 0.0 .or. basal(i-1,j  ) > 0.0 .or. &
+                    basal(i,j+1) > 0.0 .or. basal(i+1,j+1) > 0.0 .or. basal(i-1,j+1) > 0.0 .or. &
+                    basal(i,j-1) > 0.0 .or. basal(i+1,j-1) > 0.0 .or. basal(i-1,j-1) > 0.0 ) then
                   maxinsertiondepth =  hblt_depth(i,j) + 50.0
                else
                   if ( hblt_depth(i,j) >= threshold_depth ) then
