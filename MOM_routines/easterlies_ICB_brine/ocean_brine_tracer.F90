@@ -183,7 +183,7 @@ end subroutine ocean_briner_tracer_init
 ! </DESCRIPTION>
 !
 subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, briner, index_temp, &
-                               index_salt, briner3d, hblt_depth)
+                               index_salt, briner3d, hblt_depth,basal)
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
@@ -195,6 +195,7 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   real, dimension(isd:,jsd:),     intent(in)      :: hblt_depth
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
+  real, dimension(isd:,jsd:),     intent(in)      :: basal
   integer :: i, j, k, n
   integer :: param_choice
   integer :: taum1, tau, taup1
@@ -303,10 +304,15 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                max_nk       = 0
                depth        = 0.0
 
-               if ( hblt_depth(i,j) >= threshold_depth ) then
-                  maxinsertiondepth = threshold_depth
+               if ( basal(i,j  ) > 0.0 .or. basal(i+1,j  ) > 0.0 .or. basal(i-1,j  ) > 0.0 &
+                    basal(i,j+1) > 0.0 .or. basal(i+1,j+1) > 0.0 .or. basal(i-1,j-1) > 0.0 ) then
+                  maxinsertiondepth =  hblt_depth(i,j) + 50.0
                else
-                  maxinsertiondepth =  hblt_depth(i,j)
+                  if ( hblt_depth(i,j) >= threshold_depth ) then
+                     maxinsertiondepth = threshold_depth
+                  else
+                     maxinsertiondepth =  hblt_depth(i,j)
+                  endif
                endif
                depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
