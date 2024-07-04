@@ -389,8 +389,8 @@ private
   real, dimension(isd:ied,jsd:jed,nk)   :: basal3d       ! mass flux of basal 3d per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: icb           ! mass flux of icb per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,nk)   :: icb3d         ! mass flux of icb 3d per horz area (kg/(s*m^2))
-  real, dimension(isd:ied,jsd:jed)      :: misfkt         ! 
-  real, dimension(isd:ied,jsd:jed)      :: misfkb         ! 
+  integer, dimension(isd:ied,jsd:jed)   :: misfkt         ! 
+  integer, dimension(isd:ied,jsd:jed)   :: misfkb         ! 
 !Pedro
   real, dimension(isd:ied,jsd:jed)      :: calving       ! mass flux of calving land ice per horz area from (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,2)    :: uriver        ! horizontal velocity from river runoff+calving
@@ -419,14 +419,14 @@ private
   real, pointer, dimension(:,:)     :: river               =>NULL() ! mass flux of river (runoff+calving) per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: runoff              =>NULL() ! mass flux of river runoff (liquid) per horz area from (kg/(s*m^2)) 
 !Pedro
-  real, pointer, dimension(:,:)     :: briner               =>NULL() ! mass flux of ice formation (briner rejection flux) (kg/(s*m^2))
-  real, pointer, dimension(:,:,:)   :: briner3d             =>NULL() ! mass flux of 3D ice formation (briner rejection flux) (kg/(s*m^2))
+  real, pointer, dimension(:,:)     :: briner              =>NULL() ! mass flux of ice formation (briner rejection flux) (kg/(s*m^2))
+  real, pointer, dimension(:,:,:)   :: briner3d            =>NULL() ! mass flux of 3D ice formation (briner rejection flux) (kg/(s*m^2))
   real, pointer, dimension(:,:)     :: basal               =>NULL() ! mass flux of basal per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: basal3d             =>NULL() ! mass flux of basal 3d per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: icb                 =>NULL() ! mass flux of icb per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: icb3d               =>NULL() ! mass flux of icb 3d per horz area from (kg/(s*m^2)) 
-  real, pointer, dimension(:,:)     :: misfkt               =>NULL() ! 
-  real, pointer, dimension(:,:)     :: misfkb               =>NULL() ! 
+  integer, pointer, dimension(:,:)  :: misfkt              =>NULL() ! 
+  integer, pointer, dimension(:,:)  :: misfkb              =>NULL() ! 
 !Pedro
   real, pointer, dimension(:,:)     :: calving             =>NULL() ! mass flux of calving land ice per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: uriver              =>NULL() ! horizontal velocity from river (m/s)
@@ -1754,7 +1754,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! add icb to mass_source
        call mpp_clock_begin(id_briner_tracer)
        call briner_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
-                                briner, index_temp, index_salt, briner3d, surf_blthick, basal  &
+                                briner, index_temp, index_salt, briner3d, surf_blthick, basal,  &
                                 misfkt, misfkb) 
        call mpp_clock_end(id_briner_tracer)
 
