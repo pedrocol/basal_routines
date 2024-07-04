@@ -183,7 +183,7 @@ end subroutine ocean_briner_tracer_init
 ! </DESCRIPTION>
 !
 subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, briner, index_temp, &
-                               index_salt, briner3d, hblt_depth,basal)
+                               index_salt, briner3d, hblt_depth, basal, misfkt, misfkb)
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
@@ -196,6 +196,8 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
   real, dimension(isd:,jsd:),     intent(in)      :: basal
+  integer, dimension(isd:,jsd:),  intent(in)      :: misfkt
+  integer, dimension(isd:,jsd:),  intent(in)      :: misfkb
   integer :: i, j, k, n
   integer :: ii, jj, iim, iip, jjm, jjp
   integer :: param_choice
@@ -320,19 +322,23 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                if ( basal(i,j) > 0.0 ) cond = -1
 
                if ( cond == -1 ) then
-                  maxinsertiondepth =  200.0
+                  !maxinsertiondepth =  200.0
+                  max_nk = misfkt(i,j)
                elseif (cond > 0 ) then
                   maxinsertiondepth = 10.0
+                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+                  max_nk = max(1,max_nk)
                else
                   if ( hblt_depth(i,j) >= threshold_depth ) then
                      maxinsertiondepth = threshold_depth
                   else
                      maxinsertiondepth =  hblt_depth(i,j)
                   endif
+                  depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
+                  max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
+                  max_nk = max(1,max_nk)
                endif
-               depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
-               max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
-               max_nk = max(1,max_nk)
 
                thkocean = 0.0
                do k=1,max_nk

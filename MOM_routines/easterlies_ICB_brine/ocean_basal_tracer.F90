@@ -386,25 +386,27 @@ end subroutine ocean_basal_tracer_init
 ! </DESCRIPTION>
 !
 subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal, index_temp, &
-                               index_salt, basal3d)
+                               index_salt, basal3d, misfkt, misfkb)
 
   type(ocean_time_type),          intent(in)      :: Time
   type(ocean_time_steps_type),    intent(in)      :: Time_steps
-  type(ocean_thickness_type),     intent(inout)      :: Thickness
+  type(ocean_thickness_type),     intent(inout)   :: Thickness
   type(ocean_density_type),       intent(in)      :: Dens
   type(ocean_prog_tracer_type),   intent(inout)   :: T_prog(:)
   real, dimension(isd:,jsd:),     intent(inout)   :: basal
   real, dimension(isd:,jsd:,:)  , intent(inout)   :: basal3d
   integer,                        intent(in)      :: index_temp
   integer,                        intent(in)      :: index_salt
+  integer, dimension(isd:,jsd:),  intent(inout)   :: misfkt
+  integer, dimension(isd:,jsd:),  intent(inout)   :: misfkb
   integer :: param_choice,n
-  integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
+  !integer, allocatable, dimension(:,:) :: misfkt,misfkb ! Top and bottom input depths
 
   if(.not. use_basal_module) return
 
-  allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
-  misfkt(:,:) = 0
-  misfkb(:,:) = 0
+  !allocate ( misfkt(isd:ied,jsd:jed), misfkb(isd:ied,jsd:jed) )
+  !misfkt(:,:) = 0
+  !misfkb(:,:) = 0
   !basal(:,:) = 0.0
 
   param_choice = 1
@@ -421,7 +423,7 @@ subroutine basal_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, basal,
   call watermass_diag_basal(Time, Dens, T_prog, basal, &
   T_prog(index_temp)%wrk1(:,:,:),T_prog(index_salt)%wrk1(:,:,:), misfkt, misfkb)
 
-  deallocate ( misfkt, misfkb )
+  !deallocate ( misfkt, misfkb )
 
 end subroutine basal_tracer_source
 ! </SUBROUTINE> NAME="basal_tracer_source"
@@ -444,7 +446,8 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,in
   real, dimension(isd:,jsd:),     intent(inout)  :: basal_i
   integer,                        intent(in)     :: index_temp
   integer,                        intent(in)     :: index_salt
-  integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt,misfkb ! Top and bottom input depths
+  integer, dimension(isd:,jsd:),  intent(inout)  :: misfkt ! Top and bottom input depths
+  integer, dimension(isd:,jsd:),  intent(inout)  :: misfkb
   type(ocean_density_type),       intent(in)     :: Dens
   real, dimension(isd:,jsd:,:),   intent(inout)  :: basal3d
   real    :: dtime

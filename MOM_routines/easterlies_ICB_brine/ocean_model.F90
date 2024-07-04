@@ -389,6 +389,8 @@ private
   real, dimension(isd:ied,jsd:jed,nk)   :: basal3d       ! mass flux of basal 3d per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed)      :: icb           ! mass flux of icb per horz area (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,nk)   :: icb3d         ! mass flux of icb 3d per horz area (kg/(s*m^2))
+  real, dimension(isd:ied,jsd:jed)      :: misfkt         ! 
+  real, dimension(isd:ied,jsd:jed)      :: misfkb         ! 
 !Pedro
   real, dimension(isd:ied,jsd:jed)      :: calving       ! mass flux of calving land ice per horz area from (kg/(s*m^2))
   real, dimension(isd:ied,jsd:jed,2)    :: uriver        ! horizontal velocity from river runoff+calving
@@ -423,6 +425,8 @@ private
   real, pointer, dimension(:,:,:)   :: basal3d             =>NULL() ! mass flux of basal 3d per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:)     :: icb                 =>NULL() ! mass flux of icb per horz area from (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: icb3d               =>NULL() ! mass flux of icb 3d per horz area from (kg/(s*m^2)) 
+  real, pointer, dimension(:,:)     :: misfkt               =>NULL() ! 
+  real, pointer, dimension(:,:)     :: misfkb               =>NULL() ! 
 !Pedro
   real, pointer, dimension(:,:)     :: calving             =>NULL() ! mass flux of calving land ice per horz area (kg/(s*m^2)) 
   real, pointer, dimension(:,:,:)   :: uriver              =>NULL() ! horizontal velocity from river (m/s)
@@ -1240,6 +1244,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     allocate(icb3d(isd:ied,jsd:jed,nk))
     allocate(briner(isd:ied,jsd:jed))
     allocate(briner3d(isd:ied,jsd:jed,nk))
+    allocate(misfkt(isd:ied,jsd:jed))
+    allocate(misfkb(isd:ied,jsd:jed))
 !Pedro
     allocate(calving(isd:ied,jsd:jed))
     allocate(uriver(isd:ied,jsd:jed,2))
@@ -1281,12 +1287,14 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
     river                       = 0.0
     runoff                      = 0.0
 !Pedro
-    briner                       = 0.0
-    briner3d                     = 0.0
+    briner                      = 0.0
+    briner3d                    = 0.0
     basal                       = 0.0
     basal3d                     = 0.0
     icb                         = 0.0
     icb3d                       = 0.0
+    misfkt                      = 0.0
+    misfkb                      = 0.0
 !Pedro
     calving                     = 0.0
     uriver                      = 0.0
@@ -1734,7 +1742,7 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! add basal to mass_source
        call mpp_clock_begin(id_basal_tracer)
        call basal_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
-                                basal, index_temp, index_salt, basal3d)
+                                basal, index_temp, index_salt, basal3d, misfkt, misfkb)
        call mpp_clock_end(id_basal_tracer)
 
        ! add icb to T_prog%th_tendency 
@@ -1746,7 +1754,8 @@ subroutine ocean_model_init(Ocean, Ocean_state, Time_init, Time_in, &
        ! add icb to mass_source
        call mpp_clock_begin(id_briner_tracer)
        call briner_tracer_source(Time, Time_steps,Thickness, Dens, T_prog(1:num_prog_tracers), &
-                                briner, index_temp, index_salt, briner3d, surf_blthick, basal)
+                                briner, index_temp, index_salt, briner3d, surf_blthick, basal  &
+                                misfkt, misfkb) 
        call mpp_clock_end(id_briner_tracer)
 
 !Pedro
