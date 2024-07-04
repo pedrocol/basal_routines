@@ -3607,10 +3607,10 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
             do i = isc_bnd,iec_bnd
                ii = i + i_shift
                jj = j + j_shift
-               if ( Grd%yt(i,j) < -60.0 ) then
+               !if ( Grd%yt(i,j) < -60.0 ) then
                   briner(ii,jj) = Ice_ocean_boundary%wfiform(i,j) * Grd%tmask(ii,jj,1)
                   pme(ii,jj) = pme(ii,jj) - briner(ii,jj)
-               endif
+               !endif
             enddo
          enddo
       endif

@@ -197,13 +197,14 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   integer,                        intent(in)      :: index_salt
   real, dimension(isd:,jsd:),     intent(in)      :: basal
   integer :: i, j, k, n
+  integer :: ii, jj, iim, iip, jjm, jjp
   integer :: param_choice
   integer :: taum1, tau, taup1
   real    :: maxinsertiondepth, depth, thkocean
   real    :: delta(nk)
   real    :: sum_delta, const, nn
   real    :: threshold_depth
-  integer :: max_nk
+  integer :: max_nk, cond, lim
 
   if(.not. use_briner_module) return
 
@@ -292,7 +293,7 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
   elseif ( param_choice == 3 ) then !Similar to Barthelemy et al., 2015 but with 30m threshold 
 
       nn = 1.0
-      threshold_depth = 10.0
+      threshold_depth = 1.0
 
       do j=jsc,jec
          do i=isc,iec
@@ -304,10 +305,24 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                max_nk       = 0
                depth        = 0.0
 
-               if ( basal(i,j  ) > 0.0 .or. basal(i+1,j  ) > 0.0 .or. basal(i-1,j  ) > 0.0 .or. &
-                    basal(i,j+1) > 0.0 .or. basal(i+1,j+1) > 0.0 .or. basal(i-1,j+1) > 0.0 .or. &
-                    basal(i,j-1) > 0.0 .or. basal(i+1,j-1) > 0.0 .or. basal(i-1,j-1) > 0.0 ) then
-                  maxinsertiondepth =  hblt_depth(i,j) + 50.0
+               cond = 0
+               lim = 2
+               iip = max(iec,i+lim)
+               iim = min(isc,i-lim)
+               jjp = max(jec,j+lim)
+               jjm = min(jsc,j-lim)
+               do jj=jjm,jjp
+                  do ii=iim,iip
+                     if ( basal(ii,jj) > 0.0 ) cond = cond + 1
+                  enddo
+               enddo
+
+               if ( basal(i,j) > 0.0 ) cond = -1
+
+               if ( cond == -1 )
+                  maxinsertiondepth =  200.0
+               elseif (cond > 0 ) then
+                  maxinsertiondepth = 10.0
                else
                   if ( hblt_depth(i,j) >= threshold_depth ) then
                      maxinsertiondepth = threshold_depth
