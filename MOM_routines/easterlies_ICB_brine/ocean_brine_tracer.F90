@@ -329,7 +329,7 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                   depth  = min(Grd%ht(i,j),maxinsertiondepth)                ! be sure not to discharge river content into rock, ht = ocean topography
                   max_nk = min(Grd%kmt(i,j),floor(frac_index(depth,Grd%zw))) ! max number of k-levels into which discharge rivers
                   max_nk = max(1,max_nk)
-               else
+               else !cond = 0
                   if ( hblt_depth(i,j) >= threshold_depth ) then
                      maxinsertiondepth = threshold_depth
                   else
