@@ -315,11 +315,11 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                jjm = min(jsc,j-lim)
                do jj=jjm,jjp
                   do ii=iim,iip
-                     if ( basal(ii,jj) > 0.0 ) cond = cond + 1
+                     if ( misfkt(ii,jj) > 0.0 ) cond = cond + 1
                   enddo
                enddo
 
-               if ( basal(i,j) > 0.0 ) cond = -1
+               if ( misfkt(i,j) > 0.0 ) cond = -1
 
                if ( cond == -1 ) then
                   max_nk = misfkt(i,j)
