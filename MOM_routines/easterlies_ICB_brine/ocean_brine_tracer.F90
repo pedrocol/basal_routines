@@ -322,7 +322,6 @@ subroutine briner_tracer_source(Time, Time_steps, Thickness, Dens, T_prog, brine
                if ( basal(i,j) > 0.0 ) cond = -1
 
                if ( cond == -1 ) then
-                  !maxinsertiondepth =  200.0
                   max_nk = misfkt(i,j)
                elseif (cond > 0 ) then
                   maxinsertiondepth = 10.0

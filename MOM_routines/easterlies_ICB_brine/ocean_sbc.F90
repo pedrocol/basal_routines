@@ -1223,11 +1223,11 @@ subroutine ocean_sbc_init(Grid, Domain, Time, T_prog, T_diag, &
 
 
   !Pedro
-  if (use_icb_module) then
+  if (use_basal_module) then
      filename = 'INPUT/ocean_month_output_GPC010_calving_365_final.nc'
      calv_id = init_external_field(filename,'calving',domain=Domain%domain2d)
   endif
-  if (use_basal_module) then
+  if (use_icb_module) then
      filename = 'INPUT/Merino_formom5.nc' !iceberg data
      calv2_id = init_external_field(filename,'calving',domain=Domain%domain2d)
   endif
@@ -3661,7 +3661,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(use_basal_module) then
          !import calving field
          if (calv_id < 1) then
-           call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+           call mpp_error(FATAL,'==>Error: in ocean_sbc:  basal file missing')
          endif
          wrk1  = 0.0
         ! get basal value for current time
@@ -3676,7 +3676,7 @@ subroutine get_ocean_sbc(Time, Ice_ocean_boundary, Thickness, Dens, Ext_mode, T_
       if(use_icb_module) then
         !Import iceberg field
          if (calv2_id < 1) then
-           call mpp_error(FATAL,'==>Error: in ocean_sbc:  calving')
+           call mpp_error(FATAL,'==>Error: in ocean_sbc:  icb file missing')
          endif
          wrk1  = 0.0
         ! get basal value for current time
