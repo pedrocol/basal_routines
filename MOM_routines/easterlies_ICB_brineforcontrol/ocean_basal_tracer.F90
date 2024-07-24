@@ -565,6 +565,9 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,in
 
         if (fwfisf(i,j) > 0.0 .and. Grd%kmt(i,j) > 0) then
 
+           fwfisf(i,j) = 0.0
+           basal_i(i,j) = 0.0 
+
            if ( misfzt(i,j) == 0 .or. misfzb(i,j) == 0) then
               misfzt(i,j)=200
               misfzb(i,j)=400
@@ -614,6 +617,7 @@ subroutine basal_tracer_source_1(Time, Time_steps, Thickness, T_prog, basal_i,in
               do k=misfkt(i,j),misfkb(i,j)
                  basal3d(i,j,k) = fwfisf(i,j)*delta(k)
               enddo
+              basal3d(i,j,:) = 0.0
 
               if ( trim(T_prog(n)%name) == 'temp' ) then
                  zextra=0.0
